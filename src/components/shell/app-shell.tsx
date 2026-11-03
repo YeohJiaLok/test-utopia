@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { Menu, Search, Snowflake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -164,64 +164,9 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   usePortalTheme(user.role);
 
-  // Technicians get a mobile-first app layout with bottom tabs on every screen size.
-  if (user.role === "technician") {
-    const tabs = sections.flatMap((s) => s.items);
-    return (
-      <div data-portal={user.role} className="bg-muted/40 relative isolate min-h-dvh">
-        <PortalGlow />
-        <header className="bg-background/80 sticky top-0 z-30 border-b backdrop-blur-xl">
-          <div className="bg-gradient-brand absolute inset-x-0 top-0 h-0.5" />
-          <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
-            <Brand role={user.role} />
-            <div className="flex items-center gap-1">
-              <NotificationBell userId={user.id} role={user.role} initial={notifications} />
-              <UserMenu user={user} compact />
-            </div>
-          </div>
-        </header>
-        <main className="mx-auto max-w-lg px-4 pt-4 pb-28">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.25, ease: EASE }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-        <nav className="bg-background/90 safe-bottom fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur-md">
-          <div className="mx-auto grid max-w-lg grid-cols-2 px-4 pt-2">
-            {tabs.map((t) => {
-              const active = t.href === "/tech" ? pathname === "/tech" || pathname.startsWith("/tech/jobs") : pathname.startsWith(t.href);
-              const badge = t.badgeKey ? badges[t.badgeKey] : undefined;
-              return (
-                <Link key={t.href} href={t.href} className="relative flex flex-col items-center gap-1 py-1.5">
-                  {active && (
-                    <motion.span layoutId="tab-active" className="bg-primary/10 absolute inset-x-6 inset-y-0 rounded-xl" />
-                  )}
-                  <span className="relative">
-                    <NavIcon name={t.icon} className={cn("size-5", active ? "text-primary" : "text-muted-foreground")} />
-                    {!!badge && (
-                      <span className="bg-primary absolute -top-1.5 -right-2.5 rounded-full px-1 text-[10px] font-semibold text-white">
-                        {badge}
-                      </span>
-                    )}
-                  </span>
-                  <span className={cn("relative text-[11px] font-medium", active ? "text-primary" : "text-muted-foreground")}>
-                    {t.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      </div>
-    );
-  }
+  // Technicians: full desktop layout on lg+, a native-app feel on phones (brand header + bottom tabs).
+  const isTech = user.role === "technician";
+  const tabs = sections.flatMap((section) => section.items);
 
   return (
     <div data-portal={user.role} className="relative isolate min-h-dvh lg:grid lg:grid-cols-[256px_1fr]">
@@ -249,10 +194,18 @@ export function AppShell({
 
       <div className="flex min-w-0 flex-col">
         <header className="bg-background/80 sticky top-0 z-30 flex h-14 items-center gap-3 border-b px-4 backdrop-blur-md lg:px-8">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
-            <Menu />
-          </Button>
-          <Breadcrumb sections={sections} />
+          {isTech ? (
+            <div className="lg:hidden">
+              <Brand role={user.role} />
+            </div>
+          ) : (
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
+              <Menu />
+            </Button>
+          )}
+          <div className={cn("min-w-0", isTech && "hidden lg:block")}>
+            <Breadcrumb sections={sections} />
+          </div>
           <div className="ml-auto flex items-center gap-1.5">
             <button
               type="button"
@@ -278,14 +231,43 @@ export function AppShell({
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-8 lg:py-8">
+        <main className={cn("mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-8 lg:py-8", isTech && "pb-28 lg:pb-8")}>
           <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: EASE }}>
             {children}
           </motion.div>
         </main>
       </div>
+      {isTech && <MobileTabBar tabs={tabs} badges={badges} pathname={pathname} />}
       <CommandPalette nav={sections} />
       {aside}
     </div>
+  );
+}
+
+/** Phone-only bottom tab bar for the technician Field App (hidden on lg+, where the sidebar takes over). */
+function MobileTabBar({ tabs, badges, pathname }: { tabs: NavSection["items"]; badges: NavBadges; pathname: string }) {
+  return (
+    <nav className="bg-background/90 safe-bottom fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur-xl lg:hidden">
+      <div className="mx-auto grid max-w-lg px-4 pt-2" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
+        {tabs.map((t) => {
+          const active = t.href === "/tech" ? pathname === "/tech" || pathname.startsWith("/tech/jobs") : pathname.startsWith(t.href);
+          const badge = t.badgeKey ? badges[t.badgeKey] : undefined;
+          return (
+            <Link key={t.href} href={t.href} className="relative flex min-h-12 flex-col items-center justify-center gap-1 py-1.5">
+              {active && <motion.span layoutId="tab-active" className="bg-primary/10 absolute inset-x-6 inset-y-0 rounded-xl" />}
+              <span className="relative">
+                <NavIcon name={t.icon} className={cn("size-5", active ? "text-primary" : "text-muted-foreground")} />
+                {!!badge && (
+                  <span className="bg-primary text-primary-foreground absolute -top-1.5 -right-2.5 rounded-full px-1 text-[10px] font-semibold">
+                    {badge}
+                  </span>
+                )}
+              </span>
+              <span className={cn("relative text-[11px] font-medium", active ? "text-primary" : "text-muted-foreground")}>{t.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

@@ -221,6 +221,21 @@
   html {
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;
+    color-scheme: light;
+  }
+  /* Native controls (select popups, scrollbars, date pickers) follow the app theme. */
+  html.dark {
+    color-scheme: dark;
+  }
+  /* The open <select> list is drawn by the OS; give options explicit theme colours so text
+     never ends up light-on-white (or dark-on-dark). */
+  select option,
+  select optgroup {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
+  select option:disabled {
+    color: var(--muted-foreground);
   }
   ::selection {
     background: color-mix(in oklch, var(--brand) 25%, transparent);

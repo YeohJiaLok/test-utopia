@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
+// Cache Components is intentionally off: every screen in this internal ops tool is
+// per-user, role-scoped and near-real-time, so routes render dynamically per request.
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
   turbopack: {
     rules: {
       "*.css": {
@@ -11,6 +10,12 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "*.supabase.co" }],
+  },
+  experimental: {
+    serverActions: { bodySizeLimit: "25mb" },
   },
 };
 

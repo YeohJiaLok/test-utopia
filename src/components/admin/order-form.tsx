@@ -27,6 +27,9 @@ import { TechnicianPicker } from "./technician-picker";
 
 type Field = FieldPath<OrderFormValues>;
 
+/** Fields the schema requires — drives the "required details" progress hint. */
+const REQUIRED = ["customerName", "customerPhone", "customerAddress", "serviceTypeId", "quotedPrice", "problemDescription"] as const;
+
 function Section({
   icon: Icon,
   title,
@@ -98,6 +101,7 @@ export function OrderForm({
   const tech = technicians.find((t) => t.id === values.technicianId) ?? null;
   const scheduledIso = fromMytInputValue(values.scheduledAt);
   const price = Number(values.quotedPrice);
+  const filledCount = REQUIRED.filter((k) => String(values[k] ?? "").trim() !== "").length;
 
   function clearAi(name: Field) {
     setAiFields((prev) => {
@@ -225,7 +229,7 @@ export function OrderForm({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, ease: EASE }}
-              className="relative overflow-hidden rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.06] via-transparent to-sky-500/[0.06] p-4"
+              className="relative overflow-hidden rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.06] via-transparent to-primary/[0.06] p-4 sm:p-5"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/12 text-violet-600 dark:text-violet-300">
@@ -278,7 +282,7 @@ export function OrderForm({
                     readOnly
                     aria-readonly
                     tabIndex={-1}
-                    className="bg-muted/50 text-muted-foreground h-9 cursor-default pl-7 font-mono text-[13px]"
+                    className="bg-muted/50 text-muted-foreground h-11 cursor-default sm:h-9 pl-7 font-mono text-[13px]"
                   />
                 </div>
               </FormField>
@@ -288,7 +292,7 @@ export function OrderForm({
                   autoComplete="name"
                   placeholder="e.g. Nur Aisyah binti Ahmad"
                   aria-invalid={!!errors.customerName}
-                  className={cn("h-9", aiFieldClass(aiFields.customerName !== undefined))}
+                  className={cn("h-11 sm:h-9", aiFieldClass(aiFields.customerName !== undefined))}
                   {...field("customerName")}
                 />
               </FormField>
@@ -307,7 +311,7 @@ export function OrderForm({
                   autoComplete="tel"
                   placeholder="012-345 6789"
                   aria-invalid={!!errors.customerPhone}
-                  className={cn("h-9 tabular", aiFieldClass(aiFields.customerPhone !== undefined))}
+                  className={cn("h-11 sm:h-9 tabular", aiFieldClass(aiFields.customerPhone !== undefined))}
                   {...phoneField}
                 />
               </FormField>
@@ -343,7 +347,7 @@ export function OrderForm({
                 <NativeSelect
                   id={id("serviceTypeId")}
                   aria-invalid={!!errors.serviceTypeId}
-                  className={cn("h-9", aiFieldClass(aiFields.serviceTypeId !== undefined))}
+                  className={cn("h-11 sm:h-9", aiFieldClass(aiFields.serviceTypeId !== undefined))}
                   {...serviceField}
                 >
                   <option value="">Select a service…</option>
@@ -369,7 +373,7 @@ export function OrderForm({
                     inputMode="decimal"
                     placeholder="0.00"
                     aria-invalid={!!errors.quotedPrice}
-                    className={cn("h-9 pl-10 text-right tabular", aiFieldClass(aiFields.quotedPrice !== undefined))}
+                    className={cn("h-11 sm:h-9 pl-10 text-right tabular", aiFieldClass(aiFields.quotedPrice !== undefined))}
                     {...priceField}
                   />
                 </div>
@@ -412,6 +416,7 @@ export function OrderForm({
                       onChange={(next) => f.onChange(next ?? "")}
                       allowUnassigned
                       invalid={!!errors.technicianId}
+                      className="min-h-11 sm:min-h-9"
                     />
                   )}
                 />
@@ -428,7 +433,7 @@ export function OrderForm({
                   type="datetime-local"
                   step={900}
                   aria-invalid={!!errors.scheduledAt}
-                  className={cn("h-9 tabular", aiFieldClass(aiFields.scheduledAt !== undefined))}
+                  className={cn("h-11 sm:h-9 tabular", aiFieldClass(aiFields.scheduledAt !== undefined))}
                   {...field("scheduledAt")}
                 />
               </FormField>
@@ -490,8 +495,24 @@ export function OrderForm({
                     {tech.name.split(/\s+/)[0]} gets a ready-to-send WhatsApp job card once saved.
                   </p>
                 )}
-                <div>
-                  <Button type="submit" disabled={isSubmitting} className="h-10 w-full text-sm">
+                <div className="space-y-1.5">
+                  <div className="text-muted-foreground flex items-center justify-between text-[11px]">
+                    <span>Required details</span>
+                    <span className="tabular">
+                      {filledCount}/{REQUIRED.length}
+                    </span>
+                  </div>
+                  <div className="bg-muted h-1 overflow-hidden rounded-full">
+                    <motion.div
+                      className="bg-gradient-brand h-full origin-left rounded-full"
+                      initial={false}
+                      animate={{ scaleX: filledCount / REQUIRED.length }}
+                      transition={{ duration: 0.4, ease: EASE }}
+                    />
+                  </div>
+                </div>
+                <div className="hidden lg:block">
+                  <Button type="submit" disabled={isSubmitting} className="shadow-brand/25 h-10 w-full text-sm shadow-md">
                     {isSubmitting ? <Loader2 className="animate-spin" /> : <FilePlus2 />}
                     {isSubmitting ? "Creating order…" : values.technicianId ? "Create & assign order" : "Create order"}
                   </Button>
@@ -499,6 +520,22 @@ export function OrderForm({
               </div>
             </motion.div>
           </aside>
+
+          {/* Phones/tablets: the submit stays under the thumb while scrolling the form */}
+          <div className="bg-background/90 sticky bottom-0 z-20 -mx-4 -mb-6 flex items-center gap-3 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.15)] backdrop-blur-md lg:hidden">
+            <div className="min-w-0 flex-1">
+              <p className="text-muted-foreground text-[11px]">
+                Quoted · <span className="tabular">{filledCount}/{REQUIRED.length}</span> required
+              </p>
+              <p className="truncate text-base font-semibold tabular">
+                {values.quotedPrice && Number.isFinite(price) ? formatMYR(price) : "RM —"}
+              </p>
+            </div>
+            <Button type="submit" disabled={isSubmitting} className="shadow-brand/25 h-11 shrink-0 px-4 text-sm shadow-md">
+              {isSubmitting ? <Loader2 className="animate-spin" /> : <FilePlus2 />}
+              {isSubmitting ? "Creating…" : values.technicianId ? "Create & assign" : "Create order"}
+            </Button>
+          </div>
         </motion.form>
       )}
     </AnimatePresence>

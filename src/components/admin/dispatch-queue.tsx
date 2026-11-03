@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { CalendarClock, CheckCheck, Loader2, MapPin, UserCheck } from "lucide-react";
+import { ArrowUpRight, CalendarClock, CheckCheck, Clock, Loader2, MapPin, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -38,18 +38,18 @@ function QueueRow({ order, technicians, index }: { order: OrderWithRelations; te
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE, delay: index * 0.05 } }}
       exit={{ opacity: 0, x: 24, transition: { duration: 0.25 } }}
-      className="grid gap-3 px-4 py-3.5 md:grid-cols-[minmax(0,1fr)_minmax(0,17rem)_auto] md:items-center"
+      className="grid gap-3 px-4 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_auto] md:items-center md:py-3.5"
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-          <Link href={`/admin/orders/${order.id}`} className="font-mono text-[13px] font-semibold hover:underline">
+          <Link href={`/admin/orders/${order.id}`} className="text-primary font-mono text-[13px] font-semibold hover:underline">
             {order.order_no}
           </Link>
           <span className="text-muted-foreground text-xs">·</span>
           <span className="truncate text-sm font-medium">{order.customer_name}</span>
           {ageHours >= 4 && (
-            <span className="rounded-full bg-amber-500/12 px-1.5 py-px text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-              Waiting {Math.floor(ageHours)}h
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/12 px-1.5 py-px text-[10px] font-semibold text-amber-700 ring-1 ring-amber-500/20 ring-inset dark:text-amber-300">
+              <Clock className="size-2.5" /> Waiting {Math.floor(ageHours)}h
             </span>
           )}
         </div>
@@ -77,8 +77,9 @@ function QueueRow({ order, technicians, index }: { order: OrderWithRelations; te
         preferBranchId={order.branch_id}
         size="sm"
         disabled={pending}
+        className="h-11 md:h-8"
       />
-      <Button onClick={assign} disabled={!techId || pending} className="md:w-24">
+      <Button onClick={assign} disabled={!techId || pending} className="h-11 md:h-8 md:w-24">
         {pending ? <Loader2 className="animate-spin" /> : <UserCheck />}
         Assign
       </Button>
@@ -90,14 +91,24 @@ function QueueRow({ order, technicians, index }: { order: OrderWithRelations; te
 export function DispatchQueue({ orders, technicians, total }: { orders: OrderWithRelations[]; technicians: TechnicianWithLoad[]; total: number }) {
   return (
     <section className="bg-card rounded-xl border shadow-xs">
-      <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
-        <div>
-          <h2 className="text-sm font-semibold">Needs assignment</h2>
+      <header className="flex items-start justify-between gap-3 border-b px-4 py-3">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            Needs assignment
+            {total > 0 && (
+              <span className="rounded-full bg-amber-500/12 px-1.5 text-[11px] font-semibold text-amber-700 tabular dark:text-amber-300">
+                {total}
+              </span>
+            )}
+          </h2>
           <p className="text-muted-foreground text-xs">Oldest first · least-loaded technician pre-selected</p>
         </div>
         {total > orders.length && (
-          <Link href="/admin/orders?status=new" className="text-primary text-xs font-medium hover:underline">
-            View all {total}
+          <Link
+            href="/admin/orders?status=new"
+            className="text-primary -my-1 inline-flex h-8 shrink-0 items-center gap-0.5 rounded-md px-2 text-xs font-medium hover:underline"
+          >
+            View all <ArrowUpRight className="size-3.5" />
           </Link>
         )}
       </header>

@@ -73,8 +73,8 @@ export function OrdersToolbar({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search order no, customer or phone…"
-            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 h-9 w-full rounded-lg border pr-9 pl-9 text-sm outline-none focus-visible:ring-3"
+            placeholder="Search order no, customer, phone…"
+            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 h-11 w-full rounded-lg border pr-10 pl-9 text-base shadow-xs outline-none focus-visible:ring-3 sm:h-9 sm:text-sm"
           />
           {pending ? (
             <Loader2 className="text-muted-foreground absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin" aria-label="Loading" />
@@ -83,7 +83,7 @@ export function OrdersToolbar({
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2 rounded p-0.5"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md sm:size-6"
                 aria-label="Clear search"
               >
                 <X className="size-3.5" />
@@ -95,7 +95,7 @@ export function OrdersToolbar({
           <label htmlFor={techId} className="sr-only">
             Technician
           </label>
-          <NativeSelect id={techId} value={filters.tech} onChange={(e) => navigate({ tech: e.target.value })} className="sm:w-48">
+          <NativeSelect id={techId} value={filters.tech} onChange={(e) => navigate({ tech: e.target.value })} className="h-11 shadow-xs sm:h-9 sm:w-48">
             <option value="">All technicians</option>
             <option value="none">Unassigned</option>
             {technicians.map((t) => (
@@ -107,7 +107,7 @@ export function OrdersToolbar({
           <label htmlFor={branchId} className="sr-only">
             Branch
           </label>
-          <NativeSelect id={branchId} value={filters.branch} onChange={(e) => navigate({ branch: e.target.value })} className="sm:w-44">
+          <NativeSelect id={branchId} value={filters.branch} onChange={(e) => navigate({ branch: e.target.value })} className="h-11 shadow-xs sm:h-9 sm:w-44">
             <option value="">All branches</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
@@ -115,7 +115,7 @@ export function OrdersToolbar({
               </option>
             ))}
           </NativeSelect>
-          <div className="bg-muted col-span-2 inline-flex h-9 rounded-lg p-0.5 sm:col-span-1" role="group" aria-label="View">
+          <div className="bg-muted col-span-2 inline-flex h-11 rounded-lg p-0.5 sm:col-span-1 sm:h-9" role="group" aria-label="View">
             {(
               [
                 { key: "list", label: "List", icon: List },
@@ -143,9 +143,12 @@ export function OrdersToolbar({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         {filters.view === "list" ? (
-          <nav className="scrollbar-thin -mx-1 flex flex-1 gap-1 overflow-x-auto px-1 pb-1" aria-label="Filter by status">
+          <nav
+            className="-mx-4 [scrollbar-width:none] flex min-w-0 flex-1 gap-1 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,transparent,black_1rem,black_calc(100%-1.5rem),transparent)] sm:mx-0 sm:px-0 sm:[mask-image:none]"
+            aria-label="Filter by status"
+          >
             {tabs.map((s) => {
               const active = filters.status === s;
               return (
@@ -155,7 +158,7 @@ export function OrdersToolbar({
                   onClick={() => navigate({ status: s })}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors",
+                    "relative inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors sm:h-8",
                     active ? "text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
@@ -188,7 +191,7 @@ export function OrdersToolbar({
           <Button
             variant="ghost"
             size="sm"
-            className="shrink-0"
+            className="h-10 shrink-0 sm:h-7"
             onClick={() => {
               setQuery("");
               navigate({ q: "", tech: "", branch: "" });

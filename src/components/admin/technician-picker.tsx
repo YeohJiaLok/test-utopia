@@ -9,7 +9,8 @@ import { EASE } from "@/components/motion";
 import { initials } from "@/lib/format";
 import type { TechnicianWithLoad } from "@/lib/data/reference";
 import { cn } from "@/lib/utils";
-import { LOAD_META, LoadMeter, loadLevel } from "./load-meter";
+import { LoadMeter } from "./load-meter";
+import { LOAD_META, loadLevel } from "./load-level";
 
 /**
  * Least-loaded active technician, preferring the order's branch when known.

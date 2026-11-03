@@ -21,17 +21,17 @@ export function OrdersPagination({ filters, total, pageSize }: { filters: OrderF
   const page = Math.min(filters.page, pages);
   const start = total ? (page - 1) * pageSize + 1 : 0;
   const end = Math.min(page * pageSize, total);
-  const navBtn = cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8");
+  const navBtn = cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 min-w-11 sm:h-8 sm:min-w-0");
 
   return (
-    <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+    <div className="flex flex-col-reverse items-center justify-between gap-3 sm:flex-row">
       <p className="text-muted-foreground text-xs tabular">
         Showing <span className="text-foreground font-medium">{start.toLocaleString("en-MY")}</span>–
         <span className="text-foreground font-medium">{end.toLocaleString("en-MY")}</span> of{" "}
         <span className="text-foreground font-medium">{total.toLocaleString("en-MY")}</span> orders
       </p>
       {pages > 1 && (
-        <nav className="flex items-center gap-1" aria-label="Pagination">
+        <nav className="flex w-full items-center justify-between gap-1 sm:w-auto sm:justify-start" aria-label="Pagination">
           {page > 1 ? (
             <Link href={ordersHref(filters, { page: page - 1 })} className={navBtn} aria-label="Previous page" scroll={false}>
               <ChevronLeft /> <span className="hidden sm:inline">Prev</span>
@@ -41,9 +41,12 @@ export function OrdersPagination({ filters, total, pageSize }: { filters: OrderF
               <ChevronLeft /> <span className="hidden sm:inline">Prev</span>
             </span>
           )}
+          <span className="text-sm font-medium tabular sm:hidden">
+            Page {page} <span className="text-muted-foreground font-normal">of {pages}</span>
+          </span>
           {pageWindow(page, pages).map((p, i) =>
             p === "…" ? (
-              <span key={`gap-${i}`} className="text-muted-foreground px-1 text-xs">
+              <span key={`gap-${i}`} className="text-muted-foreground hidden px-1 text-xs sm:inline">
                 …
               </span>
             ) : (

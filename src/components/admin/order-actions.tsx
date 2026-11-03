@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { FormField } from "@/components/shared/form-field";
 import { formatDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { TechnicianWithLoad } from "@/lib/data/reference";
 import { assignTechnicianAction, closeJobAction, rescheduleOrderAction } from "@/app/(app)/admin/actions";
 import { fromMytInputValue, toMytInputValue } from "./datetime";
@@ -35,6 +36,7 @@ export function AssignTechnicianDialog({
   branchId,
   technicians,
   mode,
+  triggerClassName,
 }: {
   orderId: string;
   orderNo: string;
@@ -42,6 +44,7 @@ export function AssignTechnicianDialog({
   branchId: number | null;
   technicians: TechnicianWithLoad[];
   mode: "assign" | "reassign";
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const recommended = recommendTechnician(
@@ -71,7 +74,7 @@ export function AssignTechnicianDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant={mode === "assign" ? "default" : "outline"} size="sm" className="h-8" />}>
+      <DialogTrigger render={<Button variant={mode === "assign" ? "default" : "outline"} size="sm" className={cn("h-8", triggerClassName)} />}>
         {mode === "assign" ? <UserCheck /> : <UserCog />}
         {mode === "assign" ? "Assign technician" : "Reassign"}
       </DialogTrigger>
@@ -101,10 +104,12 @@ export function RescheduleDialog({
   orderId,
   orderNo,
   scheduledAt,
+  triggerClassName,
 }: {
   orderId: string;
   orderNo: string;
   scheduledAt: string | null;
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ids = useId();
@@ -136,7 +141,7 @@ export function RescheduleDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" className="h-8" />}>
+      <DialogTrigger render={<Button variant="outline" size="sm" className={cn("h-8", triggerClassName)} />}>
         <CalendarClock /> Reschedule
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -175,7 +180,7 @@ export function RescheduleDialog({
 
 // ------------------------------------------------------------------- close --
 
-export function CloseJobButton({ orderId, orderNo }: { orderId: string; orderNo: string }) {
+export function CloseJobButton({ orderId, orderNo, triggerClassName }: { orderId: string; orderNo: string; triggerClassName?: string }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -193,7 +198,7 @@ export function CloseJobButton({ orderId, orderNo }: { orderId: string; orderNo:
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm" className="h-8" />}>
+      <DialogTrigger render={<Button size="sm" className={cn("h-8", triggerClassName)} />}>
         <Lock /> Close order
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

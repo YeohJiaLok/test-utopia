@@ -28,10 +28,10 @@ export default async function AdminOverviewPage() {
         description={`Welcome back, ${firstName}. Today's intake, the dispatch queue and live technician load in one place.`}
         actions={
           <>
-            <Link href="/admin/orders?view=board" className={cn(buttonVariants({ variant: "outline" }), "h-9")}>
+            <Link href="/admin/orders?view=board" className={cn(buttonVariants({ variant: "outline" }), "h-11 flex-1 sm:h-9 sm:flex-none")}>
               <LayoutGrid /> Board
             </Link>
-            <Link href="/admin/orders/new" className={cn(buttonVariants(), "h-9")}>
+            <Link href="/admin/orders/new" className={cn(buttonVariants(), "shadow-brand/25 h-11 flex-1 shadow-md sm:h-9 sm:flex-none")}>
               <FilePlus2 /> New order
             </Link>
           </>
@@ -40,12 +40,13 @@ export default async function AdminOverviewPage() {
 
       <OverviewStats stats={overview.stats} />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-6">
           <DispatchQueue orders={overview.queue} technicians={technicians} total={overview.stats.unassigned} />
           <TechnicianStrip technicians={technicians} onSiteIds={overview.onSiteTechIds} />
         </div>
-        <div className="min-w-0 space-y-6">
+        {/* Side rail: two-up on tablets/laptops, stacked beside the main column on wide screens */}
+        <div className="grid min-w-0 items-start gap-6 lg:grid-cols-2 xl:grid-cols-1">
           <StatusDistribution counts={overview.statusCounts} />
           <ActivityFeed items={overview.activity} />
         </div>

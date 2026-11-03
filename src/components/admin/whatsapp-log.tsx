@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
+import { Building2, MessageCircle, User, Wrench } from "lucide-react";
 import { WhatsAppButton } from "@/components/orders/whatsapp-button";
 import { formatDateTime, formatRelative, maskPhone } from "@/lib/format";
 import type { Notification, NotificationAudience } from "@/lib/types";
@@ -38,36 +38,68 @@ export type OutboxItem = Notification & { order: { id: string; order_no: string 
 /** One outbound WhatsApp message: who, what, when, and a button to open / resend it. */
 export function WhatsAppMessage({ n, showOrder, compact }: { n: OutboxItem | Notification; showOrder?: boolean; compact?: boolean }) {
   const order = "order" in n ? n.order : null;
+  const AudienceIcon = n.audience === "technician" ? Wrench : n.audience === "customer" ? User : Building2;
   return (
-    <article className="space-y-2">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="bg-muted rounded-md px-1.5 py-0.5 text-[11px] font-medium">{AUDIENCE_LABEL[n.audience]}</span>
-        <span className="text-sm font-medium">{TEMPLATE_LABEL[n.template] ?? n.title}</span>
-        {showOrder && order && (
-          <Link href={`/admin/orders/${order.id}`} className="text-primary font-mono text-xs font-semibold hover:underline">
-            {order.order_no}
-          </Link>
-        )}
-        <NotificationStatusChip status={n.status} className="ml-auto" />
-      </div>
-      <p className="text-muted-foreground text-xs">
-        To {maskPhone(n.recipient_phone)} ·{" "}
-        <time dateTime={n.created_at} title={formatDateTime(n.created_at)}>
-          {formatRelative(n.created_at)}
-        </time>
-      </p>
+    <article className="flex h-full flex-col gap-3">
+      <header className="flex items-start gap-3">
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center rounded-full bg-[#25D366]/12 text-[#128C7E] dark:text-[#25D366]",
+            compact ? "size-8" : "size-9",
+          )}
+          aria-hidden
+        >
+          <AudienceIcon className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="min-w-0 text-sm leading-snug font-medium">
+              {TEMPLATE_LABEL[n.template] ?? n.title}
+              {showOrder && order && (
+                <>
+                  {" "}
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    className="text-primary font-mono text-xs font-semibold whitespace-nowrap hover:underline"
+                  >
+                    {order.order_no}
+                  </Link>
+                </>
+              )}
+            </p>
+            <NotificationStatusChip status={n.status} className="shrink-0" />
+          </div>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            {AUDIENCE_LABEL[n.audience]} · <span className="tabular">{maskPhone(n.recipient_phone)}</span> ·{" "}
+            <time dateTime={n.created_at} title={formatDateTime(n.created_at)}>
+              {formatRelative(n.created_at)}
+            </time>
+          </p>
+        </div>
+      </header>
+      {/* Chat-bubble preview of the exact text that will be sent */}
       <p
         className={cn(
-          "bg-muted/50 rounded-lg border-l-2 border-[#25D366] px-3 py-2 text-xs leading-relaxed whitespace-pre-line",
-          compact ? "line-clamp-4" : "line-clamp-6",
+          "rounded-2xl rounded-tl-sm bg-[#25D366]/[0.08] px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-line ring-1 ring-[#25D366]/15 ring-inset dark:bg-[#25D366]/[0.1]",
+          compact ? "line-clamp-4 text-xs" : "line-clamp-6",
         )}
       >
         {n.message}
       </p>
       {n.deep_link && (
-        <WhatsAppButton href={n.deep_link} notificationId={n.id} size="sm" className="h-7">
-          {n.status === "pending" ? "Open in WhatsApp" : "Resend"}
-        </WhatsAppButton>
+        <div className="mt-auto flex items-center justify-between gap-2">
+          <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300">
+            {n.status === "pending" ? "Waiting to be sent" : ""}
+          </span>
+          <WhatsAppButton
+            href={n.deep_link}
+            notificationId={n.id}
+            size="sm"
+            className={cn("h-10 px-3 sm:h-8", n.status !== "pending" && "opacity-90")}
+          >
+            {n.status === "pending" ? "Open in WhatsApp" : "Resend"}
+          </WhatsAppButton>
+        </div>
       )}
     </article>
   );

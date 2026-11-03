@@ -5,7 +5,9 @@ import { useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "motion/react";
 import {
+  BadgeCheck,
   Check,
+  ChevronRight,
   Eye,
   EyeOff,
   KeyRound,
@@ -17,8 +19,11 @@ import {
   ShieldCheck,
   UserPlus,
   Users,
+  UserX,
+  Wrench,
   X,
 } from "lucide-react";
+import { MetricStrip } from "./metric-strip";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,34 +112,29 @@ export function UsersAdmin({
   return (
     <Tabs defaultValue="users" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <TabsList>
-          <TabsTrigger value="users" className="px-3">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="users" className="h-9 flex-1 px-3 sm:h-auto sm:flex-none">
             <Users /> Users
           </TabsTrigger>
-          <TabsTrigger value="roles" className="px-3">
+          <TabsTrigger value="roles" className="h-9 flex-1 px-3 sm:h-auto sm:flex-none">
             <ShieldCheck /> Roles & access
           </TabsTrigger>
         </TabsList>
-        <Button onClick={() => setEditing({ mode: "create" })}>
+        <Button onClick={() => setEditing({ mode: "create" })} className="shadow-brand/25 h-11 w-full shadow-md sm:h-9 sm:w-auto">
           <UserPlus /> New user
         </Button>
       </div>
 
       <TabsContent value="users" className="space-y-4">
-        <div className="bg-border grid grid-cols-2 gap-px overflow-hidden rounded-xl border shadow-xs sm:grid-cols-5">
-          {[
-            { label: "Active users", value: counts.active },
-            { label: "Admins", value: counts.admin },
-            { label: "Managers", value: counts.manager },
-            { label: "Technicians", value: counts.technician },
-            { label: "Deactivated", value: counts.deactivated },
-          ].map((s) => (
-            <div key={s.label} className="bg-card p-4">
-              <p className="text-muted-foreground text-xs">{s.label}</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight tabular">{s.value}</p>
-            </div>
-          ))}
-        </div>
+        <MetricStrip
+          items={[
+            { label: "Active users", value: counts.active, icon: <Users /> },
+            { label: "Admins", value: counts.admin, icon: <ShieldCheck /> },
+            { label: "Managers", value: counts.manager, icon: <BadgeCheck /> },
+            { label: "Technicians", value: counts.technician, icon: <Wrench /> },
+            { label: "Deactivated", value: counts.deactivated, icon: <UserX />, tone: counts.deactivated ? "muted" : "default" },
+          ]}
+        />
 
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
           <div className="relative flex-1">
@@ -144,23 +144,25 @@ export function UsersAdmin({
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
             <input
               id={`${ids}-q`}
+              type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search name or email"
-              className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 h-9 w-full rounded-lg border pr-9 pl-9 text-sm outline-none focus-visible:ring-3"
+              className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 h-11 w-full rounded-lg border pr-10 pl-9 text-base shadow-xs outline-none focus-visible:ring-3 sm:h-9 sm:text-sm"
             />
             {q && (
               <button
                 type="button"
                 onClick={() => setQ("")}
                 aria-label="Clear search"
-                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2 rounded p-0.5"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center rounded-md sm:size-6"
               >
                 <X className="size-3.5" />
               </button>
             )}
           </div>
-          <div className="grid grid-cols-3 gap-2 sm:flex">
+          <div className="grid grid-cols-2 gap-2 sm:flex [&_select]:h-11 [&_select]:shadow-xs sm:[&_select]:h-9 [&>*:last-child]:col-span-2">
+            {/* the branch filter spans the row on phones (third of an odd set) */}
             <NativeSelect aria-label="Role" value={role} onChange={(e) => setRole(e.target.value)} className="sm:w-40">
               <option value="all">All roles</option>
               {ROLES.map((r) => (
@@ -193,12 +195,12 @@ export function UsersAdmin({
               <Table>
                 <TableHeader className="bg-muted/40">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Branch</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last sign-in</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead className="text-muted-foreground pl-4 text-xs">User</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Role</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Branch</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Status</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Last sign-in</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Created</TableHead>
                     <TableHead className="w-0" />
                   </TableRow>
                 </TableHeader>
@@ -211,7 +213,7 @@ export function UsersAdmin({
                       transition={{ duration: 0.25, ease: EASE, delay: Math.min(i, 12) * 0.02 }}
                       className={cn("hover:bg-muted/40 border-b transition-colors last:border-0", !u.active && "opacity-60")}
                     >
-                      <TableCell>
+                      <TableCell className="py-2.5 pl-4">
                         <div className="flex items-center gap-3">
                           <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
                             {initials(u.fullName)}
@@ -235,13 +237,13 @@ export function UsersAdmin({
                       <TableCell>
                         <StatusDot active={u.active} />
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm" title={u.lastSignInAt ?? undefined}>
+                      <TableCell className="text-muted-foreground text-sm" title={u.lastSignInAt ?? undefined} suppressHydrationWarning>
                         {u.lastSignInAt ? formatRelative(u.lastSignInAt) : "Never"}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm tabular">{formatDate(u.createdAt)}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="sm" className="h-8" onClick={() => setResetting(u)} aria-label={`Reset password for ${u.fullName}`}>
+                          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground size-8 p-0" title="Reset password" onClick={() => setResetting(u)} aria-label={`Reset password for ${u.fullName}`}>
                             <KeyRound />
                           </Button>
                           <Button variant="outline" size="sm" className="h-8" onClick={() => setEditing({ mode: "edit", user: u })}>
@@ -255,24 +257,44 @@ export function UsersAdmin({
               </Table>
             </div>
 
-            <ul className="space-y-2 md:hidden">
-              {rows.map((u) => (
-                <li key={u.id} className={cn("bg-card rounded-xl border p-3 shadow-xs", !u.active && "opacity-60")}>
-                  <button type="button" onClick={() => setEditing({ mode: "edit", user: u })} className="flex w-full items-center gap-3 text-left">
-                    <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
+            <ul className="space-y-2.5 md:hidden">
+              {rows.map((u, i) => (
+                <motion.li
+                  key={u.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: EASE, delay: Math.min(i, 10) * 0.03 }}
+                  className={cn("bg-card overflow-hidden rounded-xl border shadow-xs", !u.active && "opacity-60")}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setEditing({ mode: "edit", user: u })}
+                    className="active:bg-muted/50 flex w-full items-center gap-3 p-4 text-left transition-colors"
+                  >
+                    <span className="bg-primary/10 text-primary flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
                       {initials(u.fullName)}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{u.fullName}</span>
+                      <span className="block truncate font-medium">
+                        {u.fullName}
+                        {u.id === currentUserId && <span className="text-muted-foreground ml-1.5 text-xs font-normal">(you)</span>}
+                      </span>
                       <span className="text-muted-foreground block truncate text-xs">{u.email}</span>
-                      <span className="mt-1 flex items-center gap-2">
+                      <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                         <RolePill role={u.role} />
+                        {u.technician && <span className="bg-muted rounded px-1.5 py-px font-mono text-[10px] font-semibold">{u.technician.teamCode}</span>}
                         <StatusDot active={u.active} />
                       </span>
                     </span>
-                    <Pencil className="text-muted-foreground size-4" />
+                    <ChevronRight className="text-muted-foreground size-4 shrink-0" />
                   </button>
-                </li>
+                  <div className="text-muted-foreground flex items-center justify-between gap-2 border-t px-4 py-2 text-[11px]">
+                    <span className="truncate">{u.branchName ?? "No branch"}</span>
+                    <span className="shrink-0" suppressHydrationWarning>
+                      {u.lastSignInAt ? `Signed in ${formatRelative(u.lastSignInAt)}` : "Never signed in"}
+                    </span>
+                  </div>
+                </motion.li>
               ))}
             </ul>
           </>
@@ -329,9 +351,9 @@ function RolesMatrix({ counts }: { counts: Record<AppRole, number> }) {
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow className="hover:bg-transparent">
-              <TableHead>Permission</TableHead>
+              <TableHead className="text-muted-foreground pl-4 text-xs">Permission</TableHead>
               {ROLES.map((r) => (
-                <TableHead key={r} className="w-32 text-center">
+                <TableHead key={r} className="text-muted-foreground w-20 text-center text-xs sm:w-32">
                   {ROLE_INFO[r].label}
                 </TableHead>
               ))}
@@ -340,7 +362,7 @@ function RolesMatrix({ counts }: { counts: Record<AppRole, number> }) {
           <TableBody>
             {CAPABILITIES.map((c) => (
               <TableRow key={c.label}>
-                <TableCell className="text-sm">{c.label}</TableCell>
+                <TableCell className="min-w-36 pl-4 text-sm whitespace-normal">{c.label}</TableCell>
                 {ROLES.map((r) => (
                   <TableCell key={r} className="text-center">
                     {c.roles.includes(r) ? (
@@ -637,7 +659,7 @@ function UserSheet({
             )}
           </div>
 
-          <div className="flex justify-end gap-2 border-t p-4">
+          <div className="flex justify-end gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] [&>button]:h-11 [&>button]:flex-1 sm:[&>button]:h-8 sm:[&>button]:flex-none">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

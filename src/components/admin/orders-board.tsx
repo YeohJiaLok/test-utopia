@@ -23,7 +23,7 @@ export function OrdersBoard({
 }) {
   return (
     <LayoutGroup>
-      <div className="scrollbar-thin -mx-4 grid snap-x auto-cols-[minmax(17rem,1fr)] grid-flow-col gap-3 overflow-x-auto px-4 pb-3 lg:mx-0 lg:px-0">
+      <div className="scrollbar-thin -mx-4 grid snap-x snap-mandatory scroll-px-4 auto-cols-[min(18rem,82vw)] grid-flow-col gap-3 overflow-x-auto px-4 pb-3 sm:auto-cols-[minmax(17rem,1fr)] lg:mx-0 lg:snap-none lg:scroll-px-0 lg:px-0">
         {ORDER_STATUSES.map((status, ci) => {
           const items = columns[status] ?? [];
           const tone = TONE_CLASSES[STATUS_META[status].tone];
@@ -34,7 +34,7 @@ export function OrdersBoard({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: EASE, delay: ci * 0.05 }}
-              className="bg-muted/40 flex max-h-[calc(100dvh-16rem)] min-h-64 snap-start flex-col rounded-xl border"
+              className="bg-muted/40 flex max-h-[calc(100dvh-14rem)] min-h-64 snap-start flex-col rounded-xl border"
               aria-label={`${STATUS_META[status].label} orders`}
             >
               <header className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
@@ -42,7 +42,7 @@ export function OrdersBoard({
                   <span className={cn("size-2 rounded-full", tone.dot)} />
                   {STATUS_META[status].label}
                 </span>
-                <span className="bg-background rounded-full border px-2 text-xs font-semibold tabular">
+                <span className="bg-background text-muted-foreground rounded-full border px-2 text-xs font-semibold tabular">
                   {(counts[status] ?? 0).toLocaleString("en-MY")}
                 </span>
               </header>
@@ -60,7 +60,7 @@ export function OrdersBoard({
                     >
                       <Link
                         href={`/admin/orders/${o.id}`}
-                        className="bg-card hover:border-primary/40 block rounded-lg border p-3 shadow-xs transition-[border-color,box-shadow] hover:shadow-md"
+                        className="bg-card hover:border-primary/40 focus-visible:ring-ring/50 block rounded-lg border p-3 shadow-xs transition-[border-color,box-shadow] outline-none hover:shadow-md focus-visible:ring-3 active:scale-[0.99]"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-mono text-xs font-semibold">{o.order_no}</span>
@@ -93,13 +93,13 @@ export function OrdersBoard({
                   ))}
                 </AnimatePresence>
                 {!items.length && (
-                  <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-6 text-center text-xs">No orders</p>
+                  <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-8 text-center text-xs">Nothing at this stage</p>
                 )}
               </div>
               {more > 0 && (
                 <Link
                   href={ordersHref(filters, { view: "list", status })}
-                  className="text-primary border-t px-3 py-2 text-center text-xs font-medium hover:underline"
+                  className="text-primary hover:bg-background/60 flex h-11 items-center justify-center rounded-b-xl border-t px-3 text-xs font-medium transition-colors sm:h-9"
                 >
                   +{more.toLocaleString("en-MY")} more in list view
                 </Link>

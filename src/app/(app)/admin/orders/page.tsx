@@ -34,20 +34,34 @@ export default async function AdminOrdersPage({
       title="All service orders"
       description="Search, filter and dispatch every job across branches. Status changes only happen through workflow actions."
       actions={
-        <Link href="/admin/orders/new" className={cn(buttonVariants(), "h-9")}>
+        <Link href="/admin/orders/new" className={cn(buttonVariants(), "shadow-brand/25 hidden h-9 shadow-md sm:inline-flex")}>
           <FilePlus2 /> New order
         </Link>
       }
     />
   );
 
+  // Thumb-reachable primary action on phones (the header button takes over from `sm` up).
+  const fab = (
+    <Link
+      href="/admin/orders/new"
+      className={cn(
+        buttonVariants(),
+        "bg-gradient-brand shadow-brand/30 fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 h-12 rounded-full px-5 text-sm shadow-lg sm:hidden",
+      )}
+    >
+      <FilePlus2 /> New order
+    </Link>
+  );
+
   if (filters.view === "board") {
     const board = await getOrderBoard(filters);
     return (
-      <div className="space-y-5">
+      <div className="space-y-5 pb-16 sm:pb-0">
         {header}
         <OrdersToolbar filters={filters} counts={board.counts} technicians={techOptions} branches={branchOptions} />
         <OrdersBoard columns={board.columns} counts={board.counts} filters={filters} />
+        {fab}
       </div>
     );
   }
@@ -55,8 +69,9 @@ export default async function AdminOrdersPage({
   const list = await getOrderList(filters);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-16 sm:pb-0">
       {header}
+      {fab}
       <OrdersToolbar filters={filters} counts={list.counts} technicians={techOptions} branches={branchOptions} />
       {list.error ? (
         <EmptyState icon={SearchX} title="Couldn't load orders" description={list.error} />

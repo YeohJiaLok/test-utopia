@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
+import { ChevronRight } from "lucide-react";
 import { EASE } from "@/components/motion";
 import { TONE_CLASSES } from "@/components/shared/status-badge";
 import { ORDER_STATUSES, STATUS_META } from "@/lib/workflow";
@@ -35,7 +36,7 @@ export function StatusDistribution({ counts }: { counts: Record<OrderStatus, num
             );
           })}
         </div>
-        <ul className="space-y-1">
+        <ul className="space-y-0.5">
           {ORDER_STATUSES.map((s) => {
             const n = counts[s] ?? 0;
             const pct = total ? Math.round((n / total) * 100) : 0;
@@ -43,10 +44,11 @@ export function StatusDistribution({ counts }: { counts: Record<OrderStatus, num
               <li key={s}>
                 <Link
                   href={`/admin/orders?status=${s}`}
-                  className="hover:bg-muted/60 -mx-2 flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors"
+                  className="hover:bg-muted/60 group -mx-2 flex min-h-10 items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors sm:min-h-8"
                 >
                   <span className={cn("size-2 shrink-0 rounded-full", TONE_CLASSES[STATUS_META[s].tone].dot)} />
                   <span className="flex-1">{STATUS_META[s].label}</span>
+                  <ChevronRight className="text-muted-foreground size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
                   <span className="text-muted-foreground w-10 text-right text-xs tabular">{pct}%</span>
                   <span className="w-10 text-right font-medium tabular">{n.toLocaleString("en-MY")}</span>
                 </Link>

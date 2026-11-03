@@ -63,8 +63,116 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
   const paymentGap = completion && completion.payment_amount !== null ? completion.payment_amount - completion.final_amount : null;
   const backHref = user.role === "admin" ? "/admin/orders" : "/manager";
 
+  const hasActions = canReschedule || canAssign || canReassign || canClose;
+  const actions = (triggerClassName?: string) => (
+    <>
+      {canReschedule && (
+        <RescheduleDialog orderId={order.id} orderNo={order.order_no} scheduledAt={order.scheduled_at} triggerClassName={triggerClassName} />
+      )}
+      {(canAssign || canReassign) && (
+        <AssignTechnicianDialog
+          orderId={order.id}
+          orderNo={order.order_no}
+          currentTechnicianId={order.assigned_technician_id}
+          branchId={order.branch_id}
+          technicians={technicians}
+          mode={canAssign ? "assign" : "reassign"}
+          triggerClassName={triggerClassName}
+        />
+      )}
+      {canClose && <CloseJobButton orderId={order.id} orderNo={order.order_no} triggerClassName={triggerClassName} />}
+    </>
+  );
+
+  // Contact cards: in the side rail on desktop, right under the pipeline on phones/tablets.
+  const customerCard = (
+    <DetailCard icon={User} title="Customer">
+      <div className="space-y-3">
+        <div>
+          <p className="font-medium">{order.customer_name}</p>
+          <p className="text-muted-foreground text-sm tabular">{order.customer_phone}</p>
+        </div>
+        <p className="flex gap-1.5 text-sm">
+          <MapPin className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+          <span>{order.customer_address}</span>
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <a href={telLink(order.customer_phone)} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 lg:h-8")}>
+            <Phone /> Call
+          </a>
+          <a
+            href={whatsappLink(
+              order.customer_phone,
+              `Hi ${order.customer_name}, this is Sejuk Sejuk Services regarding your aircon service order ${order.order_no}.`,
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 lg:h-8")}
+          >
+            <WhatsAppIcon className="size-3.5 text-[#25D366]" /> WhatsApp
+          </a>
+          <a
+            href={mapsLink(order.customer_address)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 lg:h-8")}
+          >
+            <MapPin /> Maps
+          </a>
+          <a
+            href={wazeLink(order.customer_address)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 lg:h-8")}
+          >
+            <Navigation /> Waze
+          </a>
+        </div>
+      </div>
+    </DetailCard>
+  );
+  const technicianCard = (
+    <DetailCard icon={Wrench} title="Technician">
+      {order.technician ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-full text-sm font-semibold">
+              {initials(order.technician.name)}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-medium">{order.technician.name}</p>
+              <p className="text-muted-foreground text-xs">
+                {order.technician.team_code} · <span className="tabular">{order.technician.phone}</span>
+              </p>
+            </div>
+          </div>
+          {order.assigned_at && (
+            <p className="text-muted-foreground text-xs tabular">Assigned {formatDateTime(order.assigned_at)}</p>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <a href={telLink(order.technician.phone)} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 lg:h-8")}>
+              <Phone /> Call
+            </a>
+            <a
+              href={whatsappLink(order.technician.phone, `Hi ${order.technician.name}, regarding job ${order.order_no}: `)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 lg:h-8")}
+            >
+              <WhatsAppIcon className="size-3.5 text-[#25D366]" /> Message
+            </a>
+          </div>
+        </div>
+      ) : (
+        <div className="text-muted-foreground flex items-center gap-2 text-sm">
+          <UserX className="size-4" /> Not assigned yet
+        </div>
+      )}
+    </DetailCard>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", hasActions && "pb-20 lg:pb-0")}>
       <FadeIn className="space-y-4">
         <Link href={backHref} className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors">
           <ArrowLeft className="size-4" /> {user.role === "admin" ? "All orders" : "Dashboard"}
@@ -93,20 +201,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
               Created {formatDateTime(order.created_at)} · Updated {formatRelative(order.updated_at)}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {canReschedule && <RescheduleDialog orderId={order.id} orderNo={order.order_no} scheduledAt={order.scheduled_at} />}
-            {(canAssign || canReassign) && (
-              <AssignTechnicianDialog
-                orderId={order.id}
-                orderNo={order.order_no}
-                currentTechnicianId={order.assigned_technician_id}
-                branchId={order.branch_id}
-                technicians={technicians}
-                mode={canAssign ? "assign" : "reassign"}
-              />
-            )}
-            {canClose && <CloseJobButton orderId={order.id} orderNo={order.order_no} />}
-          </div>
+          {hasActions && <div className="hidden shrink-0 flex-wrap items-center gap-2 lg:flex">{actions("h-9 px-3 text-sm")}</div>}
         </div>
       </FadeIn>
 
@@ -134,6 +229,11 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
           </div>
         </FadeIn>
       )}
+
+      <FadeIn delay={0.08} className="grid gap-4 sm:grid-cols-2 lg:hidden">
+        {customerCard}
+        {technicianCard}
+      </FadeIn>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-6">
@@ -236,7 +336,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
                           href={receiptUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3 h-7 w-full")}
+                          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3 h-10 w-full sm:h-8")}
                         >
                           <Receipt /> View receipt
                         </a>
@@ -309,93 +409,12 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
         </div>
 
         <div className="min-w-0 space-y-6">
-          <FadeIn delay={0.12}>
-            <DetailCard icon={User} title="Customer">
-              <div className="space-y-3">
-                <div>
-                  <p className="font-medium">{order.customer_name}</p>
-                  <p className="text-muted-foreground text-sm tabular">{order.customer_phone}</p>
-                </div>
-                <p className="flex gap-1.5 text-sm">
-                  <MapPin className="text-muted-foreground mt-0.5 size-4 shrink-0" />
-                  <span>{order.customer_address}</span>
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <a href={telLink(order.customer_phone)} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}>
-                    <Phone /> Call
-                  </a>
-                  <a
-                    href={whatsappLink(
-                      order.customer_phone,
-                      `Hi ${order.customer_name}, this is Sejuk Sejuk Services regarding your aircon service order ${order.order_no}.`,
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
-                  >
-                    <WhatsAppIcon className="size-3.5 text-[#25D366]" /> WhatsApp
-                  </a>
-                  <a
-                    href={mapsLink(order.customer_address)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
-                  >
-                    <MapPin /> Maps
-                  </a>
-                  <a
-                    href={wazeLink(order.customer_address)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
-                  >
-                    <Navigation /> Waze
-                  </a>
-                </div>
-              </div>
-            </DetailCard>
+          <FadeIn delay={0.12} className="hidden lg:block">
+            {customerCard}
           </FadeIn>
-
-          <FadeIn delay={0.16}>
-            <DetailCard icon={Wrench} title="Technician">
-              {order.technician ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-full text-sm font-semibold">
-                      {initials(order.technician.name)}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{order.technician.name}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {order.technician.team_code} · <span className="tabular">{order.technician.phone}</span>
-                      </p>
-                    </div>
-                  </div>
-                  {order.assigned_at && (
-                    <p className="text-muted-foreground text-xs tabular">Assigned {formatDateTime(order.assigned_at)}</p>
-                  )}
-                  <div className="grid grid-cols-2 gap-2">
-                    <a href={telLink(order.technician.phone)} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}>
-                      <Phone /> Call
-                    </a>
-                    <a
-                      href={whatsappLink(order.technician.phone, `Hi ${order.technician.name}, regarding job ${order.order_no}: `)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
-                    >
-                      <WhatsAppIcon className="size-3.5 text-[#25D366]" /> Message
-                    </a>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <UserX className="size-4" /> Not assigned yet
-                </div>
-              )}
-            </DetailCard>
+          <FadeIn delay={0.16} className="hidden lg:block">
+            {technicianCard}
           </FadeIn>
-
           <FadeIn delay={0.2}>
             <DetailCard
               icon={openFlags.length ? ShieldAlert : ShieldCheck}
@@ -467,6 +486,12 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
           )}
         </div>
       </div>
+
+      {hasActions && (
+        <div className="bg-background/90 fixed inset-x-0 bottom-0 z-30 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.15)] backdrop-blur-md lg:hidden">
+          <div className="mx-auto flex max-w-2xl gap-2 [&>*]:flex-1">{actions("h-11 text-sm")}</div>
+        </div>
+      )}
     </div>
   );
 }

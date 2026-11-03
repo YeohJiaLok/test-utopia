@@ -7,7 +7,7 @@ import { CalendarClock, ChevronRight, Sparkles, UserX } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { EASE } from "@/components/motion";
-import { formatDateTime, formatMYR, formatRelative } from "@/lib/format";
+import { formatDateTime, formatMYR, formatRelative, initials } from "@/lib/format";
 import type { OrderWithRelations } from "@/lib/types";
 
 const MotionRow = motion.create(TableRow);
@@ -15,15 +15,20 @@ const MotionRow = motion.create(TableRow);
 function Technician({ order }: { order: OrderWithRelations }) {
   if (!order.technician) {
     return (
-      <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+      <span className="inline-flex h-6 items-center gap-1 rounded-full bg-amber-500/10 px-2 text-xs font-medium whitespace-nowrap text-amber-700 dark:text-amber-300">
         <UserX className="size-3.5" /> Unassigned
       </span>
     );
   }
   return (
-    <span className="min-w-0">
-      <span className="block truncate text-sm">{order.technician.name}</span>
-      <span className="text-muted-foreground block text-xs">{order.technician.team_code}</span>
+    <span className="flex min-w-0 items-center gap-2">
+      <span className="bg-primary/10 text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold">
+        {initials(order.technician.name)}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm">{order.technician.name}</span>
+        <span className="text-muted-foreground block text-xs">{order.technician.team_code}</span>
+      </span>
     </span>
   );
 }
@@ -57,13 +62,13 @@ export function OrdersTable({ orders }: { orders: OrderWithRelations[] }) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: EASE, delay: Math.min(i, 15) * 0.02 }}
                   onClick={() => router.push(href)}
-                  className="group cursor-pointer"
+                  className="group hover:bg-accent/40 cursor-pointer"
                 >
                   <TableCell className="py-3 pl-4">
                     <Link
                       href={href}
                       onClick={(e) => e.stopPropagation()}
-                      className="font-mono text-[13px] font-semibold group-hover:underline focus-visible:underline"
+                      className="group-hover:text-primary font-mono text-[13px] font-semibold transition-colors focus-visible:underline"
                     >
                       {o.order_no}
                     </Link>
@@ -110,24 +115,45 @@ export function OrdersTable({ orders }: { orders: OrderWithRelations[] }) {
           >
             <Link
               href={`/admin/orders/${o.id}`}
-              className="bg-card active:bg-muted/50 block rounded-xl border p-3.5 shadow-xs transition-colors"
+              className="bg-card active:bg-muted/50 focus-visible:ring-ring/50 block rounded-xl border p-4 shadow-xs transition-colors outline-none focus-visible:ring-3"
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-mono text-[13px] font-semibold">{o.order_no}</p>
-                  <p className="truncate text-sm font-medium">{o.customer_name}</p>
+                  <p className="text-muted-foreground flex items-center gap-1.5 font-mono text-xs font-semibold">
+                    {o.order_no}
+                    {o.source === "ai_document" && <Sparkles className="size-3 text-violet-500" aria-label="Created via AI import" />}
+                  </p>
+                  <p className="mt-0.5 truncate text-[15px] font-semibold">{o.customer_name}</p>
+                  <p className="text-muted-foreground truncate text-xs">
+                    {o.service_type?.name ?? "Service"}
+                    {o.branch?.name ? ` · ${o.branch.name}` : ""}
+                  </p>
                 </div>
-                <StatusBadge status={o.status} />
+                <StatusBadge status={o.status} className="shrink-0" />
               </div>
-              <p className="text-muted-foreground mt-1 truncate text-xs">
-                {o.service_type?.name ?? "Service"} · {o.technician?.name ?? "Unassigned"}
-              </p>
-              <div className="mt-2.5 flex items-center justify-between border-t pt-2.5 text-xs">
-                <span className="text-muted-foreground inline-flex items-center gap-1 tabular">
-                  <CalendarClock className="size-3.5" />
-                  {o.scheduled_at ? formatDateTime(o.scheduled_at) : "Not scheduled"}
+              <div className="mt-3 flex items-center text-xs">
+                {o.technician ? (
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="bg-primary/10 text-primary flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold">
+                      {initials(o.technician.name)}
+                    </span>
+                    <span className="truncate">{o.technician.name}</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 font-medium text-amber-700 dark:text-amber-300">
+                    <UserX className="size-3.5" /> Needs a technician
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3 text-xs">
+                <span className="text-muted-foreground inline-flex min-w-0 items-center gap-1 tabular">
+                  <CalendarClock className="size-3.5 shrink-0" />
+                  <span className="truncate">{o.scheduled_at ? formatDateTime(o.scheduled_at) : "Not scheduled"}</span>
                 </span>
-                <span className="font-semibold tabular">{formatMYR(o.quoted_price)}</span>
+                <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold tabular">
+                  {formatMYR(o.quoted_price)}
+                  <ChevronRight className="text-muted-foreground size-4" />
+                </span>
               </div>
             </Link>
           </motion.li>

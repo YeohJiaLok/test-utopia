@@ -1,53 +1,53 @@
 import type { Metadata } from "next";
-import { Activity, AlertOctagon, Bot, Coins, Timer } from "lucide-react";
+import { Lock, ShieldCheck } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { formatNumber } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
-import { Stagger, StaggerItem } from "@/components/motion";
-import { AuditLog } from "@/components/manager/audit-log";
-import { getAuditData } from "./_lib/queries";
+import { FadeIn } from "@/components/motion";
+import { AuditNavProvider, PendingFade } from "@/components/audit/audit-nav";
+import { AuditToolbar } from "@/components/audit/audit-toolbar";
+import { AuditKpis } from "@/components/audit/audit-summary";
+import { AuditFeed } from "@/components/audit/audit-feed";
+import { parseAuditFilters } from "./_lib/filters";
+import { getAuditPage } from "./_lib/queries";
 
 export const metadata: Metadata = { title: "Audit log" };
 
-export default async function AuditPage() {
+export default async function AuditPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireUser(["admin", "manager"]);
-  const { events, runs, userEvents, week } = await getAuditData();
-
-  const chips = [
-    { icon: Bot, label: "AI runs this week", value: formatNumber(week.runs) },
-    { icon: Timer, label: "Avg latency", value: week.avgLatencyMs !== null ? `${(week.avgLatencyMs / 1000).toFixed(1)} s` : "—" },
-    {
-      icon: Coins,
-      label: "Tokens this week",
-      value: week.tokens >= 10_000 ? `${(week.tokens / 1000).toFixed(1)}K` : formatNumber(week.tokens),
-    },
-    { icon: AlertOctagon, label: "Errors / refusals", value: formatNumber(week.errors) },
-    { icon: Activity, label: "Order events shown", value: formatNumber(events.length) },
-  ];
+  const filters = parseAuditFilters(await searchParams);
+  const data = await getAuditPage(filters);
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Governance"
         title="Audit log"
-        description="Every workflow transition is written by the database to an append-only ledger, every AI model call is logged with its tool use, tokens and latency, and every account change is recorded with who made it."
+        description="A permanent record of every workflow transition, every AI model call and every account change: who did what, when, and what changed."
+        actions={
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="bg-primary/8 text-primary ring-primary/15 inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium ring-1 ring-inset">
+              <Lock className="size-3.5" /> Append-only
+            </span>
+            <span className="bg-muted text-muted-foreground inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium">
+              <ShieldCheck className="size-3.5" /> Row-level secured
+            </span>
+          </div>
+        }
       />
 
-      <Stagger className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {chips.map((c) => (
-          <StaggerItem key={c.label} className="bg-card flex items-center gap-3 rounded-lg border px-3 py-2.5">
-            <span className="bg-primary/8 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg">
-              <c.icon className="size-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-muted-foreground truncate text-[11px]">{c.label}</p>
-              <p className="tabular text-sm font-semibold">{c.value}</p>
-            </div>
-          </StaggerItem>
-        ))}
-      </Stagger>
-
-      <AuditLog events={events} runs={runs} userEvents={userEvents} viewerRole={user.role} />
+      <AuditNavProvider>
+        <FadeIn>
+          <AuditToolbar filters={data.filters} rangeLabel={data.range.label} />
+        </FadeIn>
+        <PendingFade className="space-y-5">
+          <AuditKpis key={`${data.tab}-kpis`} kpis={data.kpis} rangeLabel={data.range.label} capped={data.capped} />
+          <AuditFeed data={data} viewerRole={user.role} />
+        </PendingFade>
+      </AuditNavProvider>
     </div>
   );
 }

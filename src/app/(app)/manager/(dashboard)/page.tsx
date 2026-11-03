@@ -67,13 +67,13 @@ export default async function ManagerDashboardPage({
 
         <PendingFrame className="space-y-6">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <StatCard index={0} label="Jobs completed" value={stats.jobs.value} icon={CheckCircle2} delta={stats.jobs.delta} hint={range.compareLabel} />
+            <StatCard index={0} label="Jobs completed" value={stats.jobs.value} icon={<CheckCircle2 />} delta={stats.jobs.delta} hint={range.compareLabel} />
             <StatCard
               index={1}
               label="Revenue"
               value={stats.revenue.value}
               kind="currency"
-              icon={Wallet}
+              icon={<Wallet />}
               delta={stats.revenue.delta}
               hint={range.compareLabel}
             />
@@ -82,7 +82,7 @@ export default async function ManagerDashboardPage({
               label="Avg ticket"
               value={stats.avgTicket.value}
               kind="currency"
-              icon={Receipt}
+              icon={<Receipt />}
               delta={stats.avgTicket.delta}
               hint={range.compareLabel}
             />
@@ -90,7 +90,7 @@ export default async function ManagerDashboardPage({
               index={3}
               label="Postponed / rescheduled"
               value={stats.reschedules.value}
-              icon={CalendarClock}
+              icon={<CalendarClock />}
               invertDelta
               delta={stats.reschedules.previous > 0 ? ((stats.reschedules.value - stats.reschedules.previous) / stats.reschedules.previous) * 100 : null}
               hint={`${stats.reschedules.previous} ${range.compareLabel.replace(/^vs /, "in ")}`}
@@ -99,14 +99,14 @@ export default async function ManagerDashboardPage({
               index={4}
               label="Pending reviews"
               value={stats.pendingReviews.value}
-              icon={ClipboardCheck}
+              icon={<ClipboardCheck />}
               hint={stats.pendingReviews.oldestCompletedAt ? `Oldest ${formatRelative(stats.pendingReviews.oldestCompletedAt)}` : "Queue is clear"}
             />
             <StatCard
               index={5}
               label="Open AI flags"
               value={stats.openFlags.value}
-              icon={ShieldAlert}
+              icon={<ShieldAlert />}
               hint={stats.openFlags.high ? `${stats.openFlags.high} high severity` : "None high severity"}
             />
           </div>

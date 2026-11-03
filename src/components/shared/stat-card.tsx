@@ -1,6 +1,5 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
 import { CountUp, EASE } from "@/components/motion";
@@ -11,7 +10,7 @@ export function StatCard({
   label,
   value,
   kind = "number",
-  icon: Icon,
+  icon,
   delta,
   hint,
   index = 0,
@@ -23,7 +22,8 @@ export function StatCard({
   label: string;
   value: number;
   kind?: "number" | "currency" | "percent" | "decimal";
-  icon?: LucideIcon;
+  /** Rendered icon element, e.g. `<Wallet />` (components can't cross the server/client boundary). */
+  icon?: React.ReactNode;
   /** Percentage change vs previous period, e.g. 12.5 or -4 */
   delta?: number | null;
   hint?: string;
@@ -56,9 +56,9 @@ export function StatCard({
       <div className="bg-gradient-brand pointer-events-none absolute -top-10 -right-10 size-28 rounded-full opacity-[0.07] blur-xl transition-opacity group-hover:opacity-[0.14]" />
       <div className="flex items-center justify-between">
         <span className="text-muted-foreground text-xs font-medium">{label}</span>
-        {Icon && (
-          <span className="bg-primary/8 text-primary flex size-8 items-center justify-center rounded-lg">
-            <Icon className="size-4" />
+        {icon && (
+          <span className="bg-primary/8 text-primary flex size-8 items-center justify-center rounded-lg [&_svg]:size-4">
+            {icon}
           </span>
         )}
       </div>

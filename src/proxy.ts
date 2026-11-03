@@ -18,8 +18,10 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const { response, claims } = await updateSession(request);
 
-  const isPublic = pathname === "/login" || pathname.startsWith("/api/health");
-  const role = (claims?.app_metadata as { role?: Role } | undefined)?.role;
+  const isPublic = pathname === "/login" || pathname === "/auth/signout" || pathname.startsWith("/api/health");
+  // role + active are copied from public.profiles into app_metadata by the profiles_sync_claims trigger.
+  const meta = claims?.app_metadata as { role?: Role; active?: boolean } | undefined;
+  const role = meta?.role;
 
   if (!claims) {
     if (isPublic || pathname.startsWith("/api/")) return response;
@@ -27,6 +29,12 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Deactivated account: end the session instead of opening any portal.
+  if (meta?.active === false) {
+    if (isPublic || pathname.startsWith("/api/")) return response;
+    return NextResponse.redirect(new URL("/auth/signout?reason=deactivated", request.url));
   }
 
   if (pathname === "/" || pathname === "/login") {

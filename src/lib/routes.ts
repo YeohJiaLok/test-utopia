@@ -42,6 +42,10 @@ export const NAV: Record<AppRole, NavSection[]> = {
         { href: "/audit", label: "Audit log", icon: "ScrollText" },
       ],
     },
+    {
+      title: "Administration",
+      items: [{ href: "/admin/users", label: "Users & roles", icon: "UserCog" }],
+    },
   ],
   manager: [
     {

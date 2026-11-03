@@ -29,11 +29,11 @@ export const SERVICE_TYPES = [
 export type BranchCode = (typeof BRANCHES)[number]["code"];
 export type ServiceCode = (typeof SERVICE_TYPES)[number]["code"];
 
-/** Technicians; `account` links to a demo login in src/lib/demo.ts. */
+/** Technicians; `account` links to a sample login in scripts/sample-accounts.ts. */
 export const TECHNICIANS: { name: string; phone: string; branch: BranchCode; team: string; skills: string[]; account?: string }[] = [
   { name: "Ali Hassan", phone: "012-345 6789", branch: "SA", team: "SA-T01", skills: ["Cleaning", "Gas", "Repair"], account: "ali" },
   { name: "Yusoff Ismail", phone: "013-228 9013", branch: "SA", team: "SA-T02", skills: ["Installation", "Repair"], account: "yusoff" },
-  { name: "Farid Zulkifli", phone: "017-661 2450", branch: "SA", team: "SA-T03", skills: ["Cleaning", "Chemical wash"] },
+  { name: "Benny Wong", phone: "017-661 2450", branch: "SA", team: "SA-T03", skills: ["Cleaning", "Chemical wash"], account: "benny" },
   { name: "John Lim", phone: "016-778 1204", branch: "KL", team: "KL-T01", skills: ["Repair", "Inspection"], account: "john" },
   { name: "Tan Wei Jie", phone: "012-909 3321", branch: "KL", team: "KL-T02", skills: ["Cleaning", "Gas"] },
   { name: "Hafiz Rahman", phone: "019-455 7810", branch: "KL", team: "KL-T03", skills: ["Installation", "Dismantle"] },

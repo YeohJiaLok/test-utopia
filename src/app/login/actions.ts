@@ -3,9 +3,8 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { DEMO_ACCOUNTS } from "@/lib/demo";
-import { DEMO_PASSWORD } from "@/lib/env";
 import { ROLE_HOME } from "@/lib/auth";
+import { safeNext } from "@/lib/users";
 import type { AppRole } from "@/lib/types";
 
 export interface LoginState {
@@ -13,27 +12,35 @@ export interface LoginState {
 }
 
 const credentials = z.object({
-  email: z.email("Enter a valid email"),
-  password: z.string().min(6, "Password is too short"),
+  email: z.string().trim().toLowerCase().pipe(z.email("Enter a valid email")),
+  password: z.string().min(1, "Enter your password"),
   next: z.string().optional(),
 });
 
+const BAD_CREDENTIALS = "Incorrect email or password.";
+const DEACTIVATED = "This account is deactivated. Contact your administrator.";
+
+/**
+ * Credentials sign-in. The portal is decided by the account's role in public.profiles
+ * (the source of truth), never by anything the browser sends.
+ */
 async function signIn(email: string, password: string): Promise<{ error?: string; role?: AppRole }> {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) return { error: error?.message ?? "Unable to sign in" };
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
-  if (!profile) {
-    await supabase.auth.signOut();
-    return { error: "This account has no operations profile. Run the seed script or contact an admin." };
+  if (error || !data.user) {
+    // Banned = deactivated by an admin. Everything else gets one generic message, so the
+    // response never reveals whether the email exists.
+    if (error?.code === "user_banned") return { error: DEACTIVATED };
+    if (error?.status === 429) return { error: "Too many attempts. Wait a minute and try again." };
+    return { error: BAD_CREDENTIALS };
+  }
+
+  const { data: profile } = await supabase.from("profiles").select("role, active").eq("id", data.user.id).maybeSingle();
+  if (!profile || !profile.active) {
+    await supabase.auth.signOut({ scope: "local" });
+    return { error: profile ? DEACTIVATED : "This account has no access to Sejuk Ops. Contact your administrator." };
   }
   return { role: profile.role as AppRole };
-}
-
-function safeNext(next: string | undefined, role: AppRole) {
-  const home = ROLE_HOME[role];
-  if (next && next.startsWith(home)) return next;
-  return home;
 }
 
 export async function loginAction(_: LoginState, formData: FormData): Promise<LoginState> {
@@ -42,21 +49,7 @@ export async function loginAction(_: LoginState, formData: FormData): Promise<Lo
 
   const result = await signIn(parsed.data.email, parsed.data.password);
   if (result.error || !result.role) return { error: result.error };
-  redirect(safeNext(parsed.data.next, result.role));
-}
-
-/** One-click demo access — also used by the in-app "Switch role" menu. */
-export async function demoLoginAction(key: string): Promise<LoginState> {
-  const account = DEMO_ACCOUNTS.find((a) => a.key === key);
-  if (!account) return { error: "Unknown demo account" };
-
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  const result = await signIn(account.email, DEMO_PASSWORD);
-  if (result.error || !result.role) {
-    return { error: `${result.error ?? "Sign-in failed"}. Has the database been seeded (npm run db:seed)?` };
-  }
-  redirect(ROLE_HOME[result.role]);
+  redirect(safeNext(parsed.data.next, ROLE_HOME[result.role]));
 }
 
 export async function logoutAction() {

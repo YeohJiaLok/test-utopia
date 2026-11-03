@@ -10,8 +10,10 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
   `complete_job`, `review_job`, `close_job`, `reschedule_order`. Call them with `supabase.rpc(...)`. A trigger rejects direct
   status/assignment updates. Every call appends to `order_events` (audit trail).
 - **RLS everywhere.** Server code reads/writes with the user-scoped client `createClient()` from `@/lib/supabase/server`.
-  The service-role client (`@/lib/supabase/admin`) is only for system writes users must not forge (AI runs/flags/insights).
-- **Auth:** call `requireUser(roles?)` from `@/lib/auth` at the top of every page and every server action.
+  The service-role client (`@/lib/supabase/admin`) is only for system writes users must not forge (AI runs/flags/insights)
+  and for admin user management (`/admin/users` actions, behind `requireUser(["admin"])`, audited to `user_admin_events`).
+- **Auth:** call `requireUser(roles?)` from `@/lib/auth` at the top of every page and every server action. Sign-in is
+  email + password only; the role in `profiles` decides the portal. Deactivated profiles (`active = false`) are signed out.
 - **AI is agentic and governed:** tools are whitelisted, read-only, parameterised, row-capped queries; never raw SQL.
   Every model call is logged to `ai_runs`. Contracts between AI and modules: `src/lib/ai/contracts.ts`.
 - Notifications (WhatsApp deep links + in-app) are produced by DB triggers; UI reads the `notifications` table.

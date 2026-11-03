@@ -17,7 +17,7 @@ Every module in the brief is implemented, plus all three optional advanced AI ch
 | Advanced: AI Workflow Supervisor | ✅ | `/manager/flags`, review workspace |
 | Advanced: AI Document Understanding | ✅ | "Import from document" on the new-order form; receipt reading |
 | Advanced: AI Operational Insight | ✅ | AI briefing on `/manager` |
-| Real authentication + roles | ✅ | Supabase Auth, RLS, one-click demo access |
+| Real authentication + roles | ✅ | Supabase Auth, RLS, role-based portals, admin user management (`/admin/users`) |
 
 ---
 
@@ -28,20 +28,39 @@ npm install
 cp .env.example .env.local          # fill in the Supabase + Anthropic keys
 npx supabase link --project-ref <ref>
 npx supabase db push                # applies supabase/migrations
-npm run db:seed                     # demo accounts + ~8 weeks of history (resets demo data)
+npm run db:seed                     # sample accounts + ~8 weeks of history (resets operational data)
 npm run dev
 ```
 
-Open http://localhost:3000 and use **Instant demo access** on the login page:
+Open http://localhost:3000 and sign in with an email and password. The system checks the account (active, role)
+and opens that role's portal: Admin → `/admin`, Manager → `/manager`, Technician → `/tech`. Sample accounts from the seed:
 
 | Role | Account | What to try |
 |---|---|---|
-| Admin | `admin@sejuk.demo` | Create an order (or import one from a PDF/photo), assign a technician, open the WhatsApp link |
-| Technician | `ali@sejuk.demo` | Open a job on a phone-sized screen, start it, complete it with photos and payment, send the feedback message |
+| Admin | `jialok.admin@sejuk.com` | Create an order (or import one from a PDF/photo), assign a technician, open the WhatsApp link |
+| Technician | `benny.tech@sejuk.com` | Open a job on a phone-sized screen, start it, complete it with photos and payment, send the feedback message |
 | Manager | `manager@sejuk.demo` | Dashboard, review queue, AI Supervisor flags, ask the Ops Copilot questions |
 
-All demo passwords are `DEMO_PASSWORD` (default `SejukDemo!2026`). To switch roles at any time, use the user menu → **Switch demo role**.
-Other technician accounts: `john@`, `bala@`, `yusoff@sejuk.demo`.
+Their password is `SEED_PASSWORD` from `.env.local` (required by the seed; it is never shown in the app).
+Other technician accounts: `ali@`, `john@`, `bala@`, `yusoff@sejuk.demo` (Ali and Bala feature in the AI example questions).
+
+### Users & roles
+
+There is no public sign-up: admins create every account in **Users & roles** (`/admin/users`).
+
+- **New user:** name, work email, role, branch, phone and a password the admin sets (8+ characters, letters and a
+  number). A technician also gets a roster entry (team code, skills), or an existing roster technician can be given a login.
+- **Edit:** name, branch, phone, role, Active / Deactivated, and **Reset password**.
+- **Deactivate:** the account is banned in Supabase Auth, and the database denies it at once (`current_app_role()`
+  returns nothing for an inactive profile). An open session is signed out on its next request.
+- **Guardrails, enforced on the server:** you can't demote or deactivate yourself, the last active admin can't be
+  removed, and a technician with open jobs can't be deactivated or moved to another role until the jobs are reassigned.
+- **Roles & access** tab: what each of the three fixed roles can do, mirrored from the guards, RLS and workflow functions.
+- Every change is written to `user_admin_events` (append-only, never contains passwords) and shown in **Audit log → User management**.
+
+`profiles` is the single source of truth for role and status; the `profiles_sync_claims` trigger copies both into the
+JWT `app_metadata` that `src/proxy.ts` reads. Also switch off **Allow new users to sign up** in the Supabase dashboard
+(Authentication → Sign In / Providers) for a hosted project; `supabase/config.toml` does this for local development.
 
 ## Tech stack
 
@@ -51,7 +70,7 @@ Other technician accounts: `john@`, `bala@`, `yusoff@sejuk.demo`.
 | Styling / UI | Tailwind CSS v4, shadcn/ui (Base UI primitives), lucide icons, `motion` for animation, Recharts |
 | Backend / DB | Supabase Postgres: SQL workflow functions, triggers, Row Level Security, Realtime |
 | Files | Supabase Storage (private bucket, signed URLs, path-scoped policies) |
-| Auth | Supabase Auth (email + password), role in `profiles` and in the JWT `app_metadata` |
+| Auth | Supabase Auth (email + password, no public sign-up), role + status in `profiles`, synced to the JWT `app_metadata` by trigger |
 | AI | Claude (`claude-opus-5-5`) through `@anthropic-ai/sdk`: tool runner, streaming, structured outputs, PDF and vision input |
 | Quality | Vitest unit tests, ESLint, `tsc --noEmit`, GitHub Actions CI |
 | Deploy | Vercel |
@@ -179,7 +198,7 @@ npm run typecheck && npm run lint && npm test
   (Meta-approved templates); the `notifications` table is ready to act as its outbox.
 - No offline mode for technicians yet. The completion draft is saved locally, but uploads need connectivity.
 - Seeded job photos are illustrated SVG placeholders.
-- The seed script resets operational demo data on every run.
+- The seed script resets operational data on every run.
 
 **AI**
 - The copilot can only answer what its eight tools expose. Free-form analytics (e.g. "correlate rainfall with gas refills")

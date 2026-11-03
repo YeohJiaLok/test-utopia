@@ -23,9 +23,20 @@ export interface AuditRun extends AiRun {
   user_role: AppRole | null;
 }
 
+export interface UserAdminEvent {
+  id: number;
+  actor_name: string;
+  action: "user_created" | "user_updated" | "role_changed" | "user_deactivated" | "user_reactivated" | "password_reset";
+  target_name: string;
+  target_email: string | null;
+  changes: Record<string, { from: unknown; to: unknown }>;
+  created_at: string;
+}
+
 export interface AuditData {
   events: AuditEvent[];
   runs: AuditRun[];
+  userEvents: UserAdminEvent[];
   week: { runs: number; avgLatencyMs: number | null; tokens: number; errors: number };
 }
 
@@ -33,7 +44,7 @@ export async function getAuditData(): Promise<AuditData> {
   const supabase = await createClient();
   const week = getRange("this_week");
 
-  const [events, runs, weekRuns] = await Promise.all([
+  const [events, runs, weekRuns, userEvents] = await Promise.all([
     supabase.from("order_events").select("*, order:orders(order_no)").order("created_at", { ascending: false }).limit(150),
     supabase.from("ai_runs").select("*, user:profiles(full_name, role)").order("created_at", { ascending: false }).limit(100),
     supabase
@@ -42,9 +53,15 @@ export async function getAuditData(): Promise<AuditData> {
       .gte("created_at", week.from)
       .lt("created_at", week.to)
       .limit(10000),
+    supabase
+      .from("user_admin_events")
+      .select("id, actor_name, action, target_name, target_email, changes, created_at")
+      .order("created_at", { ascending: false })
+      .limit(150),
   ]);
   if (events.error) fail("order events", events.error);
   if (runs.error) fail("AI runs", runs.error);
+  if (userEvents.error) fail("user management events", userEvents.error);
 
   const w = (weekRuns.data ?? []) as Row[];
   const latencies = w.map((r) => r.latency_ms).filter((v): v is number => v !== null && v !== undefined).map(Number);
@@ -67,6 +84,10 @@ export async function getAuditData(): Promise<AuditData> {
         user_role: user?.role ?? null,
       };
     }),
+    userEvents: ((userEvents.data ?? []) as Row[]).map((r) => ({
+      ...(r as unknown as UserAdminEvent),
+      changes: (r.changes ?? {}) as UserAdminEvent["changes"],
+    })),
     week: {
       runs: w.length,
       avgLatencyMs: latencies.length ? Math.round(latencies.reduce((s, v) => s + v, 0) / latencies.length) : null,

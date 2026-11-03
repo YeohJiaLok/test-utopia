@@ -1,7 +1,10 @@
-import type { AppRole } from "@/lib/types";
+import type { AppRole } from "../src/lib/types";
 
-/** Seeded demo accounts (see scripts/seed.ts). Shared by the seed script and the login screen. */
-export interface DemoAccount {
+/**
+ * Sample accounts created by scripts/seed.ts. They sign in like anyone else (email + password,
+ * password from SEED_PASSWORD); nothing in the app lists them.
+ */
+export interface SampleAccount {
   key: string;
   email: string;
   fullName: string;
@@ -10,14 +13,22 @@ export interface DemoAccount {
   blurb: string;
 }
 
-export const DEMO_ACCOUNTS: DemoAccount[] = [
+export const SAMPLE_ACCOUNTS: SampleAccount[] = [
   {
     key: "admin",
-    email: "admin@sejuk.demo",
-    fullName: "Aisyah Rahman",
+    email: "jialok.admin@sejuk.com",
+    fullName: "Yeoh Jia Lok",
     role: "admin",
     title: "Operations Admin",
     blurb: "Create orders, dispatch technicians, AI document intake",
+  },
+  {
+    key: "benny",
+    email: "benny.tech@sejuk.com",
+    fullName: "Benny Wong",
+    role: "technician",
+    title: "Technician · Shah Alam",
+    blurb: "Field technician account",
   },
   {
     key: "ali",

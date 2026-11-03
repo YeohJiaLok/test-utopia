@@ -1,24 +1,28 @@
 /**
- * Seeds a Supabase project with demo accounts and ~8 weeks of operational history.
+ * Seeds a Supabase project with sample accounts and ~8 weeks of operational history.
  *   npm run db:seed          (reads .env.local; RESETS operational demo data)
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { DEMO_ACCOUNTS } from "../src/lib/demo";
+import { SAMPLE_ACCOUNTS } from "./sample-accounts";
 import { BRANCHES, SERVICE_TYPES, TECHNICIANS, generateSeed, type BranchCode, type ServiceCode } from "./seed-data";
 import { SAMPLE_MEDIA_FILES } from "./sample-media";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
-const password = process.env.DEMO_PASSWORD ?? "SejukDemo!2026";
+const password = process.env.SEED_PASSWORD;
 
 if (!url || !serviceKey) {
   console.error("✖ NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env.local");
   process.exit(1);
 }
+if (!password || password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+  console.error("✖ SEED_PASSWORD must be set in .env.local (8+ characters, letters and a number): the sample accounts' password");
+  process.exit(1);
+}
 
 const db: SupabaseClient = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-const ACCOUNT_BRANCH: Record<string, BranchCode> = { admin: "SA", manager: "SA", ali: "SA", yusoff: "SA", john: "KL", bala: "PJ" };
+const ACCOUNT_BRANCH: Record<string, BranchCode> = { admin: "SA", manager: "SA", benny: "SA", ali: "SA", yusoff: "SA", john: "KL", bala: "PJ" };
 
 function step(label: string) {
   console.log(`\n▸ ${label}`);
@@ -47,17 +51,16 @@ async function ensureUsers() {
   }
 
   const ids: Record<string, string> = {};
-  for (const a of DEMO_ACCOUNTS) {
+  for (const a of SAMPLE_ACCOUNTS) {
     const attrs = {
       email: a.email,
       password,
       email_confirm: true,
-      app_metadata: { role: a.role },
       user_metadata: { full_name: a.fullName },
     };
     const found = existing.get(a.email);
     if (found) {
-      const { error } = await db.auth.admin.updateUserById(found, attrs);
+      const { error } = await db.auth.admin.updateUserById(found, { ...attrs, ban_duration: "none" }); // re-enable if deactivated
       if (error) throw error;
       ids[a.key] = found;
     } else {
@@ -106,17 +109,18 @@ async function main() {
   step("Reset operational data");
   await wipe();
 
-  step("Demo accounts");
+  step("Sample accounts");
   const userIds = await ensureUsers();
   await must(
     db.from("profiles").upsert(
-      DEMO_ACCOUNTS.map((a) => ({
+      SAMPLE_ACCOUNTS.map((a) => ({
         id: userIds[a.key],
         full_name: a.fullName,
         email: a.email,
         role: a.role,
         branch_id: branchId[ACCOUNT_BRANCH[a.key] ?? "SA"],
         phone: TECHNICIANS.find((t) => t.account === a.key)?.phone ?? null,
+        active: true, // role + active are copied into the JWT claims by the profiles_sync_claims trigger
       })),
       { onConflict: "id" },
     ),
@@ -126,8 +130,8 @@ async function main() {
   const profileByTech = Object.fromEntries(
     TECHNICIANS.filter((t) => t.account).map((t) => [t.name, userIds[t.account!]!]),
   );
-  const admin = DEMO_ACCOUNTS.find((a) => a.key === "admin")!;
-  const manager = DEMO_ACCOUNTS.find((a) => a.key === "manager")!;
+  const admin = SAMPLE_ACCOUNTS.find((a) => a.key === "admin")!;
+  const manager = SAMPLE_ACCOUNTS.find((a) => a.key === "manager")!;
 
   step("Operational history");
   const data = generateSeed({
@@ -158,8 +162,8 @@ async function main() {
   const flags = buildSeedFlags(data);
   if (flags.length) await insertChunked("ai_flags", flags);
 
-  console.log("\n✔ Seed complete. Demo logins (password: " + password + "):");
-  for (const a of DEMO_ACCOUNTS) console.log(`  ${a.title.padEnd(28)} ${a.email}`);
+  console.log("\n✔ Seed complete. Sample accounts (password: SEED_PASSWORD from .env.local):");
+  for (const a of SAMPLE_ACCOUNTS) console.log(`  ${a.title.padEnd(28)} ${a.email}`);
 }
 
 main().catch((e) => {

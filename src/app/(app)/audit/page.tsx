@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Audit log" };
 
 export default async function AuditPage() {
   const user = await requireUser(["admin", "manager"]);
-  const { events, runs, week } = await getAuditData();
+  const { events, runs, userEvents, week } = await getAuditData();
 
   const chips = [
     { icon: Bot, label: "AI runs this week", value: formatNumber(week.runs) },
@@ -30,7 +30,7 @@ export default async function AuditPage() {
       <PageHeader
         eyebrow="Governance"
         title="Audit log"
-        description="Every workflow transition is written by the database to an append-only ledger, and every AI model call is logged with its tool use, tokens and latency."
+        description="Every workflow transition is written by the database to an append-only ledger, every AI model call is logged with its tool use, tokens and latency, and every account change is recorded with who made it."
       />
 
       <Stagger className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
@@ -47,7 +47,7 @@ export default async function AuditPage() {
         ))}
       </Stagger>
 
-      <AuditLog events={events} runs={runs} viewerRole={user.role} />
+      <AuditLog events={events} runs={runs} userEvents={userEvents} viewerRole={user.role} />
     </div>
   );
 }

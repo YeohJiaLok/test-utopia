@@ -2,8 +2,7 @@
 
 import { useTransition } from "react";
 import { useTheme } from "next-themes";
-import { ChevronsUpDown, LogOut, Monitor, Moon, Repeat, Sun } from "lucide-react";
-import { toast } from "sonner";
+import { ChevronsUpDown, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,11 +15,10 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { DEMO_ACCOUNTS } from "@/lib/demo";
 import { initials } from "@/lib/format";
 import type { SessionUser } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { demoLoginAction, logoutAction } from "@/app/login/actions";
+import { logoutAction } from "@/app/login/actions";
 
 const ROLE_LABEL = { admin: "Admin", technician: "Technician", manager: "Manager" } as const;
 
@@ -40,13 +38,6 @@ export function UserAvatar({ name, className }: { name: string; className?: stri
 export function UserMenu({ user, compact }: { user: SessionUser; compact?: boolean }) {
   const { setTheme, theme } = useTheme();
   const [pending, start] = useTransition();
-
-  function switchTo(key: string) {
-    start(async () => {
-      const res = await demoLoginAction(key);
-      if (res?.error) toast.error(res.error);
-    });
-  }
 
   return (
     <DropdownMenu>
@@ -76,22 +67,6 @@ export function UserMenu({ user, compact }: { user: SessionUser; compact?: boole
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Repeat /> Switch demo role
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-64">
-            {DEMO_ACCOUNTS.map((a) => (
-              <DropdownMenuItem key={a.key} disabled={a.email === user.email} onClick={() => switchTo(a.key)}>
-                <UserAvatar name={a.fullName} className="size-6 text-[10px]" />
-                <span className="min-w-0">
-                  <span className="block truncate">{a.fullName}</span>
-                  <span className="text-muted-foreground block truncate text-xs">{a.title}</span>
-                </span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             {theme === "dark" ? <Moon /> : theme === "system" ? <Monitor /> : <Sun />} Theme

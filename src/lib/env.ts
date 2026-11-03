@@ -20,5 +20,3 @@ export const serverEnv = {
   anthropicApiKey: () => process.env.ANTHROPIC_API_KEY,
   anthropicModel: () => process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5",
 };
-
-export const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "SejukDemo!2026";

@@ -33,6 +33,7 @@ export interface Profile {
   role: AppRole;
   branch_id: number | null;
   phone: string | null;
+  active: boolean;
 }
 
 export interface Technician {

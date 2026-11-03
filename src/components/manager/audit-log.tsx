@@ -3,13 +3,13 @@
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, Bot, ChevronDown, ScrollText, Wrench } from "lucide-react";
+import { ArrowRight, Bot, ChevronDown, ScrollText, UserCog, Wrench } from "lucide-react";
 import { EASE } from "@/components/motion";
 import { EmptyState } from "@/components/shared/empty-state";
 import { NativeSelect } from "@/components/shared/form-field";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { AuditEvent, AuditRun } from "@/app/(app)/audit/_lib/queries";
+import type { AuditEvent, AuditRun, UserAdminEvent } from "@/app/(app)/audit/_lib/queries";
 import type { AppRole } from "@/lib/types";
 import { EVENT_LABELS } from "@/lib/workflow";
 import { orderHref } from "@/lib/routes";
@@ -303,7 +303,110 @@ function RunsTable({ runs }: { runs: AuditRun[] }) {
   );
 }
 
-export function AuditLog({ events, runs, viewerRole }: { events: AuditEvent[]; runs: AuditRun[]; viewerRole: AppRole }) {
+const USER_ACTION: Record<UserAdminEvent["action"], { label: string; tone: string }> = {
+  user_created: { label: "User created", tone: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
+  user_updated: { label: "User updated", tone: "bg-primary/8 text-primary" },
+  role_changed: { label: "Role changed", tone: "bg-violet-500/10 text-violet-700 dark:text-violet-300" },
+  user_deactivated: { label: "Deactivated", tone: "bg-red-500/10 text-red-700 dark:text-red-300" },
+  user_reactivated: { label: "Reactivated", tone: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
+  password_reset: { label: "Password reset", tone: "bg-amber-500/12 text-amber-700 dark:text-amber-300" },
+};
+
+const show = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : String(v));
+
+function UserEventsTable({ events }: { events: UserAdminEvent[] }) {
+  const [action, setAction] = useState("all");
+  const rows = events.filter((e) => action === "all" || e.action === action);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="w-52">
+          <NativeSelect aria-label="Filter by action" value={action} onChange={(e) => setAction(e.target.value)}>
+            <option value="all">All actions</option>
+            {Object.entries(USER_ACTION).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+        <span className="text-muted-foreground ml-auto text-xs" aria-live="polite">
+          {rows.length} of {events.length} changes · passwords are never recorded
+        </span>
+      </div>
+
+      {rows.length === 0 ? (
+        <EmptyState icon={UserCog} title="No user changes yet" description="Accounts created, role changes, deactivations and password resets appear here." />
+      ) : (
+        <div className="bg-card scrollbar-thin overflow-x-auto rounded-xl border">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead className="bg-muted/40 border-b">
+              <tr>
+                <th className={TH}>When</th>
+                <th className={TH}>Action</th>
+                <th className={TH}>User</th>
+                <th className={TH}>Changes</th>
+                <th className={TH}>By</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map((e) => (
+                <tr key={e.id} className="hover:bg-muted/30 align-top">
+                  <td className={cn(TD, "text-muted-foreground tabular text-xs whitespace-nowrap")}>
+                    <time dateTime={e.created_at} title={formatDateTime(e.created_at)}>
+                      {formatRelative(e.created_at)}
+                    </time>
+                  </td>
+                  <td className={TD}>
+                    <Pill className={USER_ACTION[e.action]?.tone}>{USER_ACTION[e.action]?.label ?? e.action}</Pill>
+                  </td>
+                  <td className={TD}>
+                    <span className="block font-medium whitespace-nowrap">{e.target_name}</span>
+                    {e.target_email && <span className="text-muted-foreground block text-xs">{e.target_email}</span>}
+                  </td>
+                  <td className={TD}>
+                    {Object.keys(e.changes).length ? (
+                      <ul className="space-y-0.5 text-xs">
+                        {Object.entries(e.changes).map(([field, c]) => (
+                          <li key={field} className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-muted-foreground capitalize">{field}</span>
+                            {c.from !== null && c.from !== undefined && (
+                              <>
+                                <span>{show(c.from)}</span>
+                                <ArrowRight className="text-muted-foreground size-3" aria-label="to" />
+                              </>
+                            )}
+                            <span className="font-medium">{show(c.to)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </td>
+                  <td className={cn(TD, "whitespace-nowrap")}>{e.actor_name}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function AuditLog({
+  events,
+  runs,
+  userEvents,
+  viewerRole,
+}: {
+  events: AuditEvent[];
+  runs: AuditRun[];
+  userEvents: UserAdminEvent[];
+  viewerRole: AppRole;
+}) {
   return (
     <Tabs defaultValue="events" className="gap-4">
       <TabsList>
@@ -313,12 +416,18 @@ export function AuditLog({ events, runs, viewerRole }: { events: AuditEvent[]; r
         <TabsTrigger value="runs" className="px-3">
           <Bot /> AI runs <span className="text-muted-foreground tabular text-xs">{runs.length}</span>
         </TabsTrigger>
+        <TabsTrigger value="users" className="px-3">
+          <UserCog /> User management <span className="text-muted-foreground tabular text-xs">{userEvents.length}</span>
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="events">
         <EventsTable events={events} viewerRole={viewerRole} />
       </TabsContent>
       <TabsContent value="runs">
         <RunsTable runs={runs} />
+      </TabsContent>
+      <TabsContent value="users">
+        <UserEventsTable events={userEvents} />
       </TabsContent>
     </Tabs>
   );

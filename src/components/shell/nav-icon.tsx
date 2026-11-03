@@ -9,6 +9,7 @@ import {
   ScrollText,
   ShieldAlert,
   Sparkles,
+  UserCog,
   Users,
   Wrench,
   Circle,
@@ -26,6 +27,7 @@ const ICONS: Record<string, LucideIcon> = {
   ScrollText,
   ShieldAlert,
   Sparkles,
+  UserCog,
   Users,
   Wrench,
 };

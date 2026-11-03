@@ -3,7 +3,6 @@ import { Snowflake } from "lucide-react";
 import { AuroraBackground } from "./aurora-background";
 import { BrandPanel } from "./brand-panel";
 import { LoginForm } from "./login-form";
-import { SystemStatus } from "./system-status";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -12,7 +11,8 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { next } = await searchParams;
+  const { next, reason } = await searchParams;
+  const notice = reason === "deactivated" ? "This account is deactivated. Contact your administrator." : undefined;
   return (
     // Fixed to the viewport: the login screen never scrolls. Forced dark theme for the immersive look.
     <main className="dark login-autofill fixed inset-0 isolate flex flex-col overflow-hidden bg-[oklch(0.12_0.025_258)] text-white [color-scheme:dark]">
@@ -27,14 +27,13 @@ export default async function LoginPage({
           <span className="hidden h-4 w-px bg-white/15 sm:block" />
           <span className="hidden text-xs text-white/45 sm:block">Sejuk Sejuk Service Sdn Bhd</span>
         </div>
-        <SystemStatus />
       </header>
 
       <div className="relative z-10 mx-auto grid min-h-0 w-full max-w-7xl flex-1 items-center gap-12 px-5 sm:px-10 lg:grid-cols-[1.1fr_1fr] xl:gap-20">
         <BrandPanel />
         {/* Card is sized to fit; only on very short screens does this column scroll (internally). */}
         <div className="no-scrollbar flex max-h-full justify-center py-4 lg:justify-end [@media(max-height:600px)]:overflow-y-auto">
-          <LoginForm next={typeof next === "string" ? next : undefined} />
+          <LoginForm next={typeof next === "string" ? next : undefined} notice={notice} />
         </div>
       </div>
 

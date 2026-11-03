@@ -17,6 +17,9 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
 - **AI is agentic and governed:** tools are whitelisted, read-only, parameterised, row-capped queries; never raw SQL.
   Every model call is logged to `ai_runs`. Contracts between AI and modules: `src/lib/ai/contracts.ts`.
 - Notifications (WhatsApp deep links + in-app) are produced by DB triggers; UI reads the `notifications` table.
+- `order_events` is an append-only SHA-256 hash chain (`*_audit_integrity.sql`): never update it; only the service role may
+  delete (demo reset), and the seed calls `reset_audit_chain()` after its wipe. `verify_audit_chain()` checks it.
+- Order search goes through `search_orders(p_query, p_limit)` (RLS-scoped, ranked, typo-tolerant) — don't hand-roll `ilike`.
 
 ## Next.js 16 specifics
 - `middleware` is now `src/proxy.ts`. `params` / `searchParams` are Promises.
@@ -35,7 +38,11 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
   EmptyState, FormField, NativeSelect) and `@/components/orders/*` (OrderTimeline, AttachmentGallery, WhatsAppButton).
 - Formatting: `@/lib/format` (MYR currency, Malaysia time); ranges: `@/lib/time` (`getRange("this_week")`, weeks start Monday).
 - Workflow UI rules: `@/lib/workflow` (`STATUS_META`, `canPerform`, `workflowErrorMessage`). Routes: `@/lib/routes`.
-- Technician screens are mobile-first: large touch targets (h-11+), sticky bottom actions, one task per screen.
+- Technician screens are mobile-first: large touch targets (h-11+), sticky bottom actions, one task per screen —
+  but every portal (technician included) must also have a full desktop layout; check 390 px and 1440 px.
+- Portal theming: the shell sets `data-portal` (admin indigo, technician emerald, manager azure). Use tokens
+  (`primary`, `brand`, `bg-gradient-brand`, `shadow-brand/25`, `ring`), never hard-coded sky/indigo/emerald for accents.
+- Dev server is shared while editing: never leave a broken import between saves (a build error overlays every page).
 
 ## Commands
 - `npm run dev` · `npm run typecheck` · `npm run lint` · `npm test` · `npm run db:seed`

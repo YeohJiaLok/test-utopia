@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Lock, ShieldCheck } from "lucide-react";
 import { requireUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { IntegrityBadge, type ChainStatus } from "@/components/audit/integrity-badge";
 import { PageHeader } from "@/components/shared/page-header";
 import { FadeIn } from "@/components/motion";
 import { AuditNavProvider, PendingFade } from "@/components/audit/audit-nav";
@@ -19,7 +21,7 @@ export default async function AuditPage({
 }) {
   const user = await requireUser(["admin", "manager"]);
   const filters = parseAuditFilters(await searchParams);
-  const data = await getAuditPage(filters);
+  const [data, chain] = await Promise.all([getAuditPage(filters), verifyChain()]);
 
   return (
     <div className="space-y-6">
@@ -29,6 +31,7 @@ export default async function AuditPage({
         description="A permanent record of every workflow transition, every AI model call and every account change: who did what, when, and what changed."
         actions={
           <div className="flex flex-wrap items-center gap-2 text-xs">
+            <IntegrityBadge status={chain} />
             <span className="bg-primary/8 text-primary ring-primary/15 inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium ring-1 ring-inset">
               <Lock className="size-3.5" /> Append-only
             </span>
@@ -50,4 +53,20 @@ export default async function AuditPage({
       </AuditNavProvider>
     </div>
   );
+}
+
+/** Recomputes the order-event hash chain in the database (see *_audit_integrity.sql). */
+async function verifyChain(): Promise<ChainStatus | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("verify_audit_chain");
+  const row = (data as Record<string, unknown>[] | null)?.[0];
+  if (error || !row) return null;
+  return {
+    ok: Boolean(row.ok),
+    checked: Number(row.checked),
+    brokenSeq: row.broken_seq == null ? null : Number(row.broken_seq),
+    reason: (row.reason as string | null) ?? null,
+    headHash: (row.head_hash as string | null) ?? null,
+    verifiedAt: row.verified_at as string,
+  };
 }

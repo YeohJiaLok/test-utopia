@@ -58,7 +58,9 @@ export function StatusPipeline({
                   compact && "hidden sm:block",
                 )}
               >
-                {STATUS_META[s].label}
+                {/* Short labels on phones ("On site", "Done") so six steps fit without wrapping. */}
+                <span className="sm:hidden">{STATUS_META[s].short}</span>
+                <span className="hidden sm:inline">{STATUS_META[s].label}</span>
               </span>
               {!compact && timestamps?.[s] && (
                 <span className="text-muted-foreground hidden text-[10px] tabular-nums md:block">

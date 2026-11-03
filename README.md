@@ -112,6 +112,17 @@ flowchart TB
   - Only the **assigned Technician** can start or complete a job.
   - Only a **Manager** can review (approve or send back for rework); a Manager or Admin can close.
   - All actions are **traceable** in `order_events` (actor, role, from → to, payload) and shown as a timeline.
+- **Tamper-evident audit trail.** `order_events` is a SHA-256 hash chain: each event stores the previous event's hash and
+  its own hash over its full content. Updates are rejected for everyone (even the service role); `verify_audit_chain()`
+  recomputes the chain and reports the first broken link (edited, deleted, reordered or truncated events). The Audit log
+  shows the live result ("Integrity verified · N events"), with URL-driven filters, a detail drawer and CSV export.
+- **Smart global search (Ctrl/⌘ K).** `search_orders()` ranks matches across order number, customer, phone in any format
+  (`0199748287`, `+60 19-974 8287`, `974 8287`), address, problem, technician, service, branch and status; multi-word
+  queries must all match, and typo-tolerant trigram matching kicks in only when nothing matches exactly. It runs with the
+  caller's RLS, so technicians only ever find their own jobs.
+- **One app, three portals.** Each role gets its own accent colour and name (Admin Console · indigo, Field App · emerald,
+  Manager Hub · azure) through `[data-portal]` theme tokens, in light and dark mode. Every page is responsive: full desktop
+  layouts, stacked cards and ≥ 44 px touch targets on phones, and a native-app bottom tab bar for technicians.
 - **Row Level Security everywhere.** Technicians can only see and upload to their own jobs (and storage paths); office
   staff see everything. The server uses the user-scoped client by default; the service role is reserved for system
   writes such as AI logs.

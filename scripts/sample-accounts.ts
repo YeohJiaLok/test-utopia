@@ -17,7 +17,7 @@ export const SAMPLE_ACCOUNTS: SampleAccount[] = [
   {
     key: "admin",
     email: "jialok.admin@sejuk.com",
-    fullName: "Yeoh Jia Lok",
+    fullName: "Jialok Yeoh",
     role: "admin",
     title: "Operations Admin",
     blurb: "Create orders, dispatch technicians, AI document intake",

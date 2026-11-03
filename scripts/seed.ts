@@ -83,6 +83,9 @@ async function wipe() {
   for (const [t, key] of tables) {
     await must(db.from(t).delete().not(key, "is", null), `wipe ${t}`);
   }
+  // order_events is a hash chain (see *_audit_integrity.sql); start a fresh chain at #1.
+  const { error } = await db.rpc("reset_audit_chain");
+  if (error) throw new Error(`reset audit chain: ${error.message}`);
 }
 
 async function main() {
@@ -161,6 +164,12 @@ async function main() {
   const { buildSeedFlags } = await import("./seed-flags");
   const flags = buildSeedFlags(data);
   if (flags.length) await insertChunked("ai_flags", flags);
+
+  step("Audit trail integrity");
+  const { data: chain, error: chainError } = await db.rpc("verify_audit_chain");
+  if (chainError) throw new Error(`verify audit chain: ${chainError.message}`);
+  const c = (chain as { ok: boolean; checked: number; reason: string | null }[])[0]!;
+  console.log(`  ${c.ok ? "✔ SHA-256 hash chain verified" : `✖ ${c.reason}`} (${c.checked} events)`);
 
   console.log("\n✔ Seed complete. Sample accounts (password: SEED_PASSWORD from .env.local):");
   for (const a of SAMPLE_ACCOUNTS) console.log(`  ${a.title.padEnd(28)} ${a.email}`);

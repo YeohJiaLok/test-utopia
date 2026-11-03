@@ -131,7 +131,14 @@ function Breadcrumb({ sections }: { sections: NavSection[] }) {
   const pathname = usePathname();
   const all = sections.flatMap((s) => s.items);
   const match = [...all].sort((a, b) => b.href.length - a.href.length).find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
-  const extra = match && pathname !== match.href ? "Details" : null;
+  const extra =
+    match && pathname !== match.href
+      ? pathname.endsWith("/complete")
+        ? "Complete job"
+        : pathname.startsWith("/tech/")
+          ? "Job details"
+          : "Order details"
+      : null;
   return (
     <div className="flex min-w-0 items-center gap-1.5 text-sm">
       <span className="truncate font-medium">{match?.label ?? "Sejuk Ops"}</span>

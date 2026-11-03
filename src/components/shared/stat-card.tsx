@@ -15,8 +15,11 @@ export function StatCard({
   delta,
   hint,
   index = 0,
+  invertDelta,
   className,
 }: {
+  /** When true a rise is bad (e.g. reschedules, open flags) and renders red. */
+  invertDelta?: boolean;
   label: string;
   value: number;
   kind?: "number" | "currency" | "percent" | "decimal";
@@ -37,6 +40,7 @@ export function StatCard({
           : (n: number) => Math.round(n).toLocaleString("en-MY");
 
   const up = (delta ?? 0) >= 0;
+  const good = invertDelta ? !up : up;
 
   return (
     <motion.div
@@ -66,7 +70,7 @@ export function StatCard({
           <span
             className={cn(
               "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-medium",
-              up ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-red-500/10 text-red-700 dark:text-red-300",
+              good ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-red-500/10 text-red-700 dark:text-red-300",
             )}
           >
             {up ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}

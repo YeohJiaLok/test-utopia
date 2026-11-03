@@ -271,7 +271,9 @@ export function generateSeed(refs: SeedRefs, now: Date = new Date()): SeedOutput
         const chain: Record<string, unknown>[] = [];
         for (let k = 0; k < rescheduleCount; k++) {
           const older = addHours(newer, -24 * r.int(1, 2));
-          const at = addMinutes(older, -r.int(60, 600));
+          // Requested before the old slot, and never in the future (upcoming jobs postponed today).
+          const requested = addMinutes(older, -r.int(60, 600));
+          const at = requested <= now ? requested : addMinutes(now, -45 * (k + 1));
           chain.unshift({ order_id: orderId, technician_id: tech.id, old_scheduled_at: older.toISOString(), new_scheduled_at: newer.toISOString(), reason: r.pick(RESCHEDULE_REASONS), requested_by: tech.profile_id ?? refs.adminProfileId, created_at: at.toISOString() });
           newer = older;
         }

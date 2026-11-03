@@ -33,6 +33,16 @@ describe("seed generator", () => {
     }
   });
 
+  it("never dates reschedules or audit events in the future, whatever the seed time", () => {
+    for (let h = 0; h < 48; h += 7) {
+      const now = new Date(NOW.getTime() + h * 3_600_000);
+      const d = generateSeed(refs, now);
+      for (const r of [...d.reschedules, ...d.events]) {
+        expect(new Date(r.created_at as string).getTime()).toBeLessThanOrEqual(now.getTime());
+      }
+    }
+  });
+
   it("only completed orders have completion records, never more than 6 media each", () => {
     const done = new Set(data.orders.filter((o) => ["job_done", "reviewed", "closed"].includes(o.status as string)).map((o) => o.id));
     expect(data.completions.every((c) => done.has(c.order_id))).toBe(true);

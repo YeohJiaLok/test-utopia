@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, FileText, Pencil, UserRound } from "lucide-react";
+import { ClipboardCheck, Clock, FileText, Pencil, UserRound } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { formatMYR } from "@/lib/format";
@@ -60,9 +60,13 @@ export function StepReview({
 
   return (
     <div className="space-y-5">
-      <StepIntro title="Review & submit" description="Check everything, add remarks, then mark the job as done." />
+      <StepIntro
+        icon={ClipboardCheck}
+        title="Review & submit"
+        description="Check everything, add remarks, then mark the job as done."
+      />
 
-      <div className="bg-card divide-y rounded-2xl border p-4">
+      <div className="bg-card divide-y rounded-2xl border p-4 shadow-xs">
         <Row label="Work done" onEdit={() => onEdit(0)}>
           <p className="line-clamp-4 whitespace-pre-line">{workDone}</p>
         </Row>
@@ -76,7 +80,7 @@ export function StepReview({
               <span className="text-muted-foreground block text-[11px]">Extra</span>
               {formatMYR(extra)}
             </span>
-            <span className="font-semibold">
+            <span className="text-primary font-semibold">
               <span className="text-muted-foreground block text-[11px] font-normal">Final</span>
               {formatMYR(finalAmount)}
             </span>

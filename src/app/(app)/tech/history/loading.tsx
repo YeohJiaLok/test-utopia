@@ -7,7 +7,8 @@ export default function Loading() {
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-4 w-56" />
       </div>
-      <Skeleton className="h-44 rounded-2xl" />
+      <Skeleton className="h-44 rounded-2xl lg:h-28" />
+      <Skeleton className="h-36 rounded-2xl lg:h-16" />
       {[0, 1].map((g) => (
         <div key={g} className="space-y-2">
           <div className="flex justify-between px-1">

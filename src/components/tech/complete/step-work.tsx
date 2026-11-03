@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { ClipboardList, Plus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { Chip } from "../chip";
@@ -42,7 +42,11 @@ export function StepWork({
 
   return (
     <div className="space-y-5">
-      <StepIntro title="Work done" description="What did you do on site? Tap common tasks or type your own." />
+      <StepIntro
+        icon={ClipboardList}
+        title="Work done"
+        description="What did you do on site? Tap common tasks or type your own."
+      />
       <div className="grid grid-cols-2 gap-2">
         <ReadOnlyField label="Order ID" value={orderNo} mono />
         <ReadOnlyField label="Service" value={<span className="block truncate text-sm">{serviceName}</span>} />

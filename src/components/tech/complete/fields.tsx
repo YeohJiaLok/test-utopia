@@ -4,25 +4,29 @@ import { useSyncExternalStore } from "react";
 import { TZDate } from "@date-fns/tz";
 import { format } from "date-fns";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, type LucideIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { TIMEZONE } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export function StepIntro({ title, description }: { title: string; description: string }) {
+export function StepIntro({ icon: Icon, title, description }: { icon?: LucideIcon; title: string; description: string }) {
   return (
-    <div>
-      <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-      <p className="text-muted-foreground mt-1 text-sm">{description}</p>
+    <div className="flex items-start gap-3">
+      {Icon && (
+        <span className="bg-accent text-primary ring-primary/15 flex size-11 shrink-0 items-center justify-center rounded-2xl ring-1">
+          <Icon className="size-5" />
+        </span>
+      )}
+      <div className="min-w-0">
+        <h2 className="text-xl leading-tight font-semibold tracking-tight">{title}</h2>
+        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{description}</p>
+      </div>
     </div>
   );
 }
 
 /** Ringgit amount input with a fixed "RM" prefix and a numeric keypad on mobile. */
-export function MoneyInput({
-  className,
-  ...props
-}: Omit<React.ComponentProps<"input">, "type" | "inputMode">) {
+export function MoneyInput({ className, ...props }: Omit<React.ComponentProps<"input">, "type" | "inputMode">) {
   return (
     <div className="relative">
       <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-base font-medium">

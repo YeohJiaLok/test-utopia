@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { CalendarClock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,18 +20,34 @@ const QUICK_SLOTS = [
   { label: "In 2 days", days: 2, hour: 10 },
 ] as const;
 
-/** Bottom sheet: pick a new slot + reason → rpc reschedule_order. */
+const DESKTOP_QUERY = "(min-width: 1024px)";
+const subscribeDesktop = (cb: () => void) => {
+  const mq = window.matchMedia(DESKTOP_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+};
+
+/** Bottom sheet on phones, side panel on desktop: pick a new slot + reason → rpc reschedule_order. */
 export function RescheduleSheet({
   orderId,
   orderNo,
   currentScheduledAt,
   compact,
+  block,
 }: {
   orderId: string;
   orderNo: string;
   currentScheduledAt: string | null;
+  /** Icon-only square trigger (mobile action bar). */
   compact?: boolean;
+  /** Full-width trigger (desktop side panel). */
+  block?: boolean;
 }) {
+  const desktop = useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => false,
+  );
   const [open, setOpen] = useState(false);
   const [when, setWhen] = useState("");
   const [min, setMin] = useState("");
@@ -65,12 +81,18 @@ export function RescheduleSheet({
     if (fullReason.length < 3) return setError("Choose a reason or describe what happened");
     setError(null);
     startTransition(async () => {
-      const res = await rescheduleJobAction({ orderId, scheduledAt: when, reason: fullReason });
+      const res = await rescheduleJobAction({
+        orderId,
+        scheduledAt: when,
+        reason: fullReason,
+      });
       if (!res.ok) {
         setError(res.error);
         return;
       }
-      toast.success("Job rescheduled", { description: `${orderNo} moved to ${formatDateTime(res.data.scheduledAt)}` });
+      toast.success("Job rescheduled", {
+        description: `${orderNo} moved to ${formatDateTime(res.data.scheduledAt)}`,
+      });
       setOpen(false);
     });
   }
@@ -80,25 +102,32 @@ export function RescheduleSheet({
       <SheetTrigger
         render={
           <Button
-            variant="outline"
-            className={cn("h-12 shrink-0 rounded-xl", compact ? "w-12 px-0" : "px-4")}
+            variant={block ? "ghost" : "outline"}
+            className={cn(
+              "shrink-0 rounded-xl",
+              block ? "text-muted-foreground h-11 w-full" : "h-12",
+              compact ? "w-12 px-0" : !block && "px-4",
+            )}
             aria-label="Reschedule job"
           />
         }
       >
-        <CalendarClock className="size-5" />
+        <CalendarClock className={block ? "size-4" : "size-5"} />
         {!compact && <span>Reschedule</span>}
       </SheetTrigger>
       <SheetContent
-        side="bottom"
-        className="safe-bottom mx-auto max-h-[92dvh] max-w-lg gap-0 overflow-y-auto rounded-t-3xl p-0"
+        side={desktop ? "right" : "bottom"}
+        className={cn(
+          "gap-0 overflow-y-auto p-0",
+          desktop ? "w-full sm:max-w-md" : "safe-bottom mx-auto max-h-[92dvh] max-w-lg rounded-t-3xl",
+        )}
       >
-        <div className="bg-muted-foreground/25 mx-auto mt-2.5 h-1.5 w-10 rounded-full" aria-hidden />
+        {!desktop && <div className="bg-muted-foreground/25 mx-auto mt-2.5 h-1.5 w-10 rounded-full" aria-hidden />}
         <SheetHeader className="pb-2">
           <SheetTitle className="text-lg font-semibold">Reschedule {orderNo}</SheetTitle>
           <SheetDescription>
-            Currently {currentScheduledAt ? formatDateTime(currentScheduledAt) : "not scheduled"}. The office and audit
-            log are updated automatically.
+            Currently {currentScheduledAt ? formatDateTime(currentScheduledAt) : "not scheduled"}. The office and audit log are
+            updated automatically.
           </SheetDescription>
         </SheetHeader>
 

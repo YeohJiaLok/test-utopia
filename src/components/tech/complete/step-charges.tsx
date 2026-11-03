@@ -1,6 +1,6 @@
 "use client";
 
-import { Equal, Plus } from "lucide-react";
+import { Calculator, Equal, Plus } from "lucide-react";
 import { CountUp } from "@/components/motion";
 import { FormField } from "@/components/shared/form-field";
 import { formatMYR } from "@/lib/format";
@@ -27,7 +27,7 @@ export function StepCharges({
 
   return (
     <div className="space-y-5">
-      <StepIntro title="Charges" description="Add anything beyond the quote — parts, gas, extra units." />
+      <StepIntro icon={Calculator} title="Charges" description="Add anything beyond the quote — parts, gas, extra units." />
 
       <ReadOnlyField label="Quoted price" value={formatMYR(quoted)} />
 

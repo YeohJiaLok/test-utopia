@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Camera, Check, FileText, ImagePlus, Loader2, PlayCircle, RotateCw, X } from "lucide-react";
+import { Camera, Check, FileText, ImagePlus, Images, Loader2, PlayCircle, RotateCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EASE } from "@/components/motion";
 import { formatBytes } from "@/lib/format";
@@ -86,6 +86,7 @@ export function StepMedia({ media, error }: { media: Media; error: string | null
   return (
     <div className="space-y-5">
       <StepIntro
+        icon={Images}
         title="Photos & documents"
         description="Before/after photos, short videos or PDFs. Photos are compressed on your phone to upload fast."
       />
@@ -95,7 +96,12 @@ export function StepMedia({ media, error }: { media: Media; error: string | null
           <span className="font-medium tabular-nums">
             {used} of {MAX_JOB_MEDIA} added
           </span>
-          <span className={cn("text-xs tabular-nums", full ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground")}>
+          <span
+            className={cn(
+              "text-xs tabular-nums",
+              full ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground",
+            )}
+          >
             {full ? "Limit reached" : `${media.remaining} slot${media.remaining === 1 ? "" : "s"} left`}
           </span>
         </div>
@@ -103,7 +109,7 @@ export function StepMedia({ media, error }: { media: Media; error: string | null
           {Array.from({ length: MAX_JOB_MEDIA }, (_, i) => (
             <span
               key={i}
-              className={cn("h-1.5 rounded-full transition-colors duration-300", i < used ? "bg-primary" : "bg-border")}
+              className={cn("h-1.5 rounded-full transition-colors duration-300", i < used ? "bg-gradient-brand" : "bg-border")}
             />
           ))}
         </div>
@@ -112,23 +118,22 @@ export function StepMedia({ media, error }: { media: Media; error: string | null
       <div className="grid grid-cols-2 gap-2">
         <Button
           type="button"
-          variant="outline"
           disabled={full}
           onClick={() => cameraRef.current?.click()}
-          className="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 h-14 flex-col gap-0.5 rounded-xl"
+          className="shadow-primary/20 h-16 flex-col gap-1 rounded-2xl shadow-md"
         >
           <Camera className="size-5" />
-          <span className="text-xs">Camera</span>
+          <span className="text-[13px] font-semibold">Take photo</span>
         </Button>
         <Button
           type="button"
           variant="outline"
           disabled={full}
           onClick={() => filesRef.current?.click()}
-          className="h-14 flex-col gap-0.5 rounded-xl"
+          className="bg-card h-16 flex-col gap-1 rounded-2xl"
         >
           <ImagePlus className="size-5" />
-          <span className="text-xs">Gallery / files</span>
+          <span className="text-[13px] font-semibold">Gallery / files</span>
         </Button>
         <input
           ref={cameraRef}
@@ -202,10 +207,19 @@ export function StepMedia({ media, error }: { media: Media; error: string | null
           </AnimatePresence>
         </ul>
       ) : (
-        <div className="text-muted-foreground flex flex-col items-center gap-2 rounded-2xl border border-dashed px-6 py-10 text-center text-sm">
-          <Camera className="size-6" />
-          No files yet — photos of the finished work help the manager approve faster.
-        </div>
+        <button
+          type="button"
+          onClick={() => filesRef.current?.click()}
+          className="text-muted-foreground hover:border-primary/40 hover:bg-primary/5 bg-card/60 flex w-full flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-9 text-center text-sm transition-colors"
+        >
+          <span className="bg-accent text-primary flex size-12 items-center justify-center rounded-2xl">
+            <ImagePlus className="size-6" />
+          </span>
+          <span>
+            <span className="text-foreground block font-medium">No files yet</span>
+            <span className="mt-0.5 block leading-relaxed">Before/after photos help the manager approve faster. Optional.</span>
+          </span>
+        </button>
       )}
 
       {media.items.some((i) => i.status === "error") && (

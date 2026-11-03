@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, Camera, Loader2, RefreshCw, Sparkles, Trash2, Wallet } from "lucide-react";
+import { AlertTriangle, Camera, CreditCard, Loader2, RefreshCw, Sparkles, Trash2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { FormField } from "@/components/shared/form-field";
@@ -65,9 +65,7 @@ function AiReceiptResult({
       {mismatch && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
           <AlertTriangle className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1">
-            Doesn&apos;t match the {formatMYR(entered)} you entered.
-          </span>
+          <span className="min-w-0 flex-1">Doesn&apos;t match the {formatMYR(entered)} you entered.</span>
           <Button
             type="button"
             size="sm"
@@ -115,7 +113,7 @@ export function StepPayment({
 
   return (
     <div className="space-y-5">
-      <StepIntro title="Payment" description="Optional — record what the customer paid you on site." />
+      <StepIntro icon={CreditCard} title="Payment" description="Optional — record what the customer paid you on site." />
 
       <div
         onClick={() => onEnabledChange(!enabled)}
@@ -124,7 +122,12 @@ export function StepPayment({
           enabled ? "border-primary/40 bg-primary/5" : "bg-card",
         )}
       >
-        <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", enabled ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+        <span
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-xl",
+            enabled ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+          )}
+        >
           <Wallet className="size-5" />
         </span>
         <span className="min-w-0 flex-1">

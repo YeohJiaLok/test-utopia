@@ -67,6 +67,24 @@ export function scheduleLabel(value: string | null | undefined, now: Date = new 
   return `${day} · ${format(when, "h:mm a")}`;
 }
 
+/**
+ * Short countdown for jobs within ±12 hours: "in 45 min", "in 2 h 10 min", "25 min late"; "Overdue"
+ * beyond that. Returns null for jobs further out (the absolute schedule label is clearer there).
+ */
+export function countdownLabel(value: string | null | undefined, now: Date = new Date()) {
+  if (!value) return null;
+  const diffMin = Math.round((new Date(value).getTime() - now.getTime()) / 60000);
+  if (diffMin > 12 * 60) return null;
+  if (diffMin < -12 * 60) return { label: "Overdue", late: true };
+  const abs = Math.abs(diffMin);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  const span = h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`;
+  if (diffMin < -1) return { label: `${span} late`, late: true };
+  if (diffMin <= 1) return { label: "Due now", late: false };
+  return { label: `in ${span}`, late: false };
+}
+
 export function isOverdue(scheduledAt: string | null | undefined, now: Date = new Date()) {
   return !!scheduledAt && new Date(scheduledAt).getTime() < now.getTime();
 }

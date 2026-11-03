@@ -19,6 +19,7 @@ export function useHydrated() {
 
 /**
  * Sticky action bar that floats just above the technician bottom tabs (safe-area aware).
+ * Phones/tablets only (below lg) — desktop screens render their actions inline.
  * Portalled to <body> so page transitions (transforms) never break fixed positioning.
  */
 export function BottomBar({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -29,12 +30,14 @@ export function BottomBar({ children, className }: { children: React.ReactNode; 
       initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.35, ease: EASE, delay: 0.1 }}
-      className="pointer-events-none fixed inset-x-0 z-40 px-3"
-      style={{ bottom: "calc(4.25rem + max(env(safe-area-inset-bottom), 0.75rem))" }}
+      className="pointer-events-none fixed inset-x-0 z-40 mx-auto max-w-2xl px-3 sm:px-4 lg:hidden"
+      style={{
+        bottom: "calc(4.25rem + max(env(safe-area-inset-bottom), 0.75rem))",
+      }}
     >
       <div
         className={cn(
-          "bg-background/92 pointer-events-auto mx-auto max-w-lg rounded-2xl border p-2 shadow-lg shadow-slate-900/8 backdrop-blur-md",
+          "bg-background/90 pointer-events-auto rounded-2xl border p-2 shadow-[0_8px_30px_-6px_rgb(15_23_42/0.18)] ring-1 ring-black/[0.02] backdrop-blur-xl dark:shadow-black/40",
           className,
         )}
       >
@@ -47,5 +50,5 @@ export function BottomBar({ children, className }: { children: React.ReactNode; 
 
 /** Reserves room at the end of the page so content is never hidden behind the bar. */
 export function BottomBarSpacer() {
-  return <div aria-hidden className="h-20" />;
+  return <div aria-hidden className="h-20 lg:hidden" />;
 }

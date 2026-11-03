@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,7 @@ import { StepPayment } from "./step-payment";
 import { StepReview } from "./step-review";
 import { StepWork } from "./step-work";
 import { SuccessScreen } from "./success-screen";
+import { StepRail, SummaryPanel } from "./summary-panel";
 import {
   EMPTY_DRAFT,
   STEPS,
@@ -65,10 +66,17 @@ function WizardSkeleton() {
   return (
     <div className="space-y-5" aria-busy="true">
       <Skeleton className="h-10 w-full rounded-xl" />
-      <Skeleton className="h-2 w-full rounded-full" />
-      <div className="space-y-3">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-4 w-64" />
+      <div className="grid grid-cols-5 gap-1.5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-1.5 rounded-full" />
+        ))}
+      </div>
+      <div className="flex items-start gap-3 pt-2">
+        <Skeleton className="size-11 rounded-2xl" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-56" />
+        </div>
       </div>
       <Skeleton className="h-36 w-full rounded-xl" />
       <div className="flex flex-wrap gap-2">
@@ -88,8 +96,16 @@ function Wizard({ order, technicianName, userId, initialMedia, initialReceipt, c
   const [outcome, setOutcome] = useState<CompletionOutcome | null>(null);
   const [submitting, startSubmit] = useTransition();
 
-  const media = useMediaUploads({ orderId: order.id, userId, initial: initialMedia });
-  const { receipt, capture, clear } = useReceipt({ orderId: order.id, userId, initial: initialReceipt });
+  const media = useMediaUploads({
+    orderId: order.id,
+    userId,
+    initial: initialMedia,
+  });
+  const { receipt, capture, clear } = useReceipt({
+    orderId: order.id,
+    userId,
+    initial: initialReceipt,
+  });
 
   const step = draft.step;
   const extra = parseAmount(draft.extraCharges) ?? 0;
@@ -100,7 +116,10 @@ function Wizard({ order, technicianName, userId, initialMedia, initialReceipt, c
   useEffect(() => {
     if (completed) clearDraft(order.id);
     else if (restored && hasDraftContent(restored)) {
-      toast.info("Draft restored", { id: `draft-${order.id}`, description: "Picked up where you left off." });
+      toast.info("Draft restored", {
+        id: `draft-${order.id}`,
+        description: "Picked up where you left off.",
+      });
     }
   }, [completed, restored, order.id]);
 
@@ -202,175 +221,217 @@ function Wizard({ order, technicianName, userId, initialMedia, initialReceipt, c
   }
 
   const last = step === STEPS.length - 1;
-  const progress = (step + 1) / STEPS.length;
+
+  const actions = (
+    <div className="flex gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        className="h-12 rounded-xl px-4"
+        disabled={step === 0 || submitting}
+        onClick={() => goTo(step - 1)}
+        aria-label="Previous step"
+      >
+        <ArrowLeft className="size-4" />
+        <span className="max-[359px]:sr-only">Back</span>
+      </Button>
+      {last ? (
+        <Button
+          type="button"
+          className="bg-gradient-brand shadow-brand/30 h-12 flex-1 rounded-xl text-[15px] font-semibold text-white shadow-lg"
+          disabled={submitting}
+          onClick={submit}
+        >
+          {submitting ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
+          {submitting ? "Submitting…" : "Submit · Job Done"}
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          className="h-12 flex-1 rounded-xl text-[15px] font-semibold"
+          disabled={step === 2 && media.busy}
+          onClick={next}
+        >
+          {step === 2 && media.busy ? (
+            <>
+              <Loader2 className="size-4 animate-spin" /> Uploading…
+            </>
+          ) : (
+            <>
+              Next: {STEPS[step + 1]!.label} <ArrowRight className="size-4" />
+            </>
+          )}
+        </Button>
+      )}
+    </div>
+  );
 
   return (
-    <div>
-      <div className="bg-muted/85 sticky top-14 z-20 -mx-4 px-4 pt-1 pb-3 backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/tech/jobs/${order.id}`}
-            aria-label="Close and return to job"
-            className="hover:bg-background -ml-2 flex size-11 shrink-0 items-center justify-center rounded-xl"
-          >
-            <X className="size-5" />
-          </Link>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">Complete job</p>
-            <p className="text-muted-foreground truncate font-mono text-xs">{order.orderNo}</p>
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="min-w-0">
+        <div className="bg-background/85 sticky top-14 z-20 -mx-4 border-b px-4 pt-1.5 pb-2.5 backdrop-blur-xl lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-0 lg:backdrop-blur-none">
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/tech/jobs/${order.id}`}
+              aria-label="Close and return to job"
+              className="hover:bg-muted active:bg-muted -ml-2 flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors"
+            >
+              <X className="size-5" />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">Complete job</p>
+              <p className="text-muted-foreground truncate font-mono text-xs">
+                {order.orderNo} · {order.customerName}
+              </p>
+            </div>
+            <span className="bg-primary/10 text-primary inline-flex h-7 items-center rounded-full px-2.5 text-xs font-semibold tabular-nums">
+              {step + 1}/{STEPS.length}
+            </span>
           </div>
-          <span className="text-muted-foreground text-xs font-medium tabular-nums">
-            Step {step + 1} of {STEPS.length}
-          </span>
+          <ol className="mt-2 grid grid-cols-5 gap-1.5 lg:hidden" aria-label="Form progress">
+            {STEPS.map((s, i) => {
+              const reachable = i < step;
+              const current = i === step;
+              return (
+                <li key={s.key}>
+                  <button
+                    type="button"
+                    disabled={!reachable}
+                    onClick={() => goTo(i)}
+                    aria-current={current ? "step" : undefined}
+                    aria-label={`${s.label}${reachable ? " (done, tap to edit)" : current ? " (current step)" : ""}`}
+                    className="group flex w-full flex-col items-stretch gap-1.5 pt-1 pb-0.5 disabled:cursor-default"
+                  >
+                    <span className="bg-border relative h-1.5 overflow-hidden rounded-full">
+                      <motion.span
+                        className="bg-gradient-brand absolute inset-0 origin-left rounded-full"
+                        initial={false}
+                        animate={{ scaleX: i <= step ? 1 : 0 }}
+                        transition={{
+                          duration: 0.4,
+                          ease: EASE,
+                          delay: i === step ? 0.1 : 0,
+                        }}
+                      />
+                    </span>
+                    <span
+                      className={cn(
+                        "flex items-center justify-center gap-0.5 text-[11px] font-medium transition-colors",
+                        current
+                          ? "text-primary font-semibold"
+                          : reachable
+                            ? "text-foreground/75 group-hover:text-foreground"
+                            : "text-muted-foreground/70",
+                      )}
+                    >
+                      {reachable && <Check className="text-primary size-3 shrink-0" strokeWidth={3} />}
+                      <span className="truncate">{s.label}</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </div>
-        <div
-          className="bg-border mt-2 h-1.5 overflow-hidden rounded-full"
-          role="progressbar"
-          aria-valuemin={1}
-          aria-valuemax={STEPS.length}
-          aria-valuenow={step + 1}
-          aria-label="Form progress"
-        >
-          <motion.div
-            className="bg-gradient-brand h-full origin-left rounded-full"
-            initial={false}
-            animate={{ scaleX: progress }}
-            transition={{ duration: 0.45, ease: EASE }}
-          />
+
+        <div className="overflow-x-clip pt-5 lg:mt-4 lg:rounded-2xl lg:border lg:bg-card lg:p-8 lg:shadow-xs">
+          <AnimatePresence mode="wait" custom={direction} initial={false}>
+            <motion.div
+              key={step}
+              custom={direction}
+              variants={slide}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.24, ease: EASE }}
+            >
+              {step === 0 && (
+                <StepWork
+                  orderNo={order.orderNo}
+                  serviceName={order.serviceName}
+                  value={draft.workDone}
+                  onChange={(v) => update("workDone", v)}
+                  error={error}
+                />
+              )}
+              {step === 1 && (
+                <StepCharges
+                  quoted={order.quotedPrice}
+                  extra={draft.extraCharges}
+                  onExtraChange={(v) => update("extraCharges", v)}
+                  finalAmount={finalAmount}
+                  error={error}
+                />
+              )}
+              {step === 2 && <StepMedia media={media} error={error} />}
+              {step === 3 && (
+                <StepPayment
+                  enabled={draft.paymentEnabled}
+                  onEnabledChange={(v) => update("paymentEnabled", v)}
+                  method={draft.paymentMethod}
+                  onMethodChange={(m) => update("paymentMethod", m)}
+                  amount={draft.paymentAmount}
+                  onAmountChange={(v) => update("paymentAmount", v)}
+                  finalAmount={finalAmount}
+                  receipt={receipt}
+                  onReceipt={(f) => void capture(f)}
+                  onClearReceipt={() => void clear()}
+                  error={error}
+                />
+              )}
+              {step === 4 && (
+                <StepReview
+                  orderNo={order.orderNo}
+                  workDone={draft.workDone}
+                  quoted={order.quotedPrice}
+                  extra={extra}
+                  finalAmount={finalAmount}
+                  media={media.done}
+                  payment={
+                    draft.paymentEnabled && draft.paymentMethod
+                      ? {
+                          method: draft.paymentMethod,
+                          amount: draft.paymentMethod === "unpaid" ? 0 : (paymentAmount ?? 0),
+                          receipt: draft.paymentMethod !== "unpaid" && receipt.status === "done",
+                        }
+                      : null
+                  }
+                  remarks={draft.remarks}
+                  onRemarksChange={(v) => update("remarks", v)}
+                  technicianName={technicianName}
+                  onEdit={goTo}
+                  error={error}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
-        <ol className="mt-2 grid grid-cols-5 gap-1">
-          {STEPS.map((s, i) => {
-            const reachable = i < step;
-            return (
-              <li key={s.key}>
-                <button
-                  type="button"
-                  disabled={!reachable}
-                  onClick={() => goTo(i)}
-                  className={cn(
-                    "flex w-full items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium transition-colors",
-                    i === step ? "text-primary" : reachable ? "text-foreground/70 hover:text-foreground" : "text-muted-foreground/60",
-                  )}
-                >
-                  {reachable && <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400" />}
-                  {s.label}
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+
+        <div className="mt-4 hidden lg:block">{actions}</div>
       </div>
 
-      <div className="overflow-x-clip pt-3">
-        <AnimatePresence mode="wait" custom={direction} initial={false}>
-          <motion.div
-            key={step}
-            custom={direction}
-            variants={slide}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.24, ease: EASE }}
-          >
-            {step === 0 && (
-              <StepWork
-                orderNo={order.orderNo}
-                serviceName={order.serviceName}
-                value={draft.workDone}
-                onChange={(v) => update("workDone", v)}
-                error={error}
-              />
-            )}
-            {step === 1 && (
-              <StepCharges
-                quoted={order.quotedPrice}
-                extra={draft.extraCharges}
-                onExtraChange={(v) => update("extraCharges", v)}
-                finalAmount={finalAmount}
-                error={error}
-              />
-            )}
-            {step === 2 && <StepMedia media={media} error={error} />}
-            {step === 3 && (
-              <StepPayment
-                enabled={draft.paymentEnabled}
-                onEnabledChange={(v) => update("paymentEnabled", v)}
-                method={draft.paymentMethod}
-                onMethodChange={(m) => update("paymentMethod", m)}
-                amount={draft.paymentAmount}
-                onAmountChange={(v) => update("paymentAmount", v)}
-                finalAmount={finalAmount}
-                receipt={receipt}
-                onReceipt={(f) => void capture(f)}
-                onClearReceipt={() => void clear()}
-                error={error}
-              />
-            )}
-            {step === 4 && (
-              <StepReview
-                orderNo={order.orderNo}
-                workDone={draft.workDone}
-                quoted={order.quotedPrice}
-                extra={extra}
-                finalAmount={finalAmount}
-                media={media.done}
-                payment={
-                  draft.paymentEnabled && draft.paymentMethod
-                    ? {
-                        method: draft.paymentMethod,
-                        amount: draft.paymentMethod === "unpaid" ? 0 : (paymentAmount ?? 0),
-                        receipt: draft.paymentMethod !== "unpaid" && receipt.status === "done",
-                      }
-                    : null
+      <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block">
+        <StepRail step={step} onGoTo={goTo} />
+        <SummaryPanel
+          order={order}
+          workLines={draft.workDone.split("\n").filter((l) => l.trim()).length}
+          extra={extra}
+          finalAmount={finalAmount}
+          mediaCount={media.done.length}
+          mediaBusy={media.busy}
+          payment={
+            draft.paymentEnabled
+              ? {
+                  method: draft.paymentMethod,
+                  amount: draft.paymentMethod === "unpaid" ? 0 : paymentAmount,
                 }
-                remarks={draft.remarks}
-                onRemarksChange={(v) => update("remarks", v)}
-                technicianName={technicianName}
-                onEdit={goTo}
-                error={error}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+              : null
+          }
+        />
+      </aside>
 
       <BottomBarSpacer />
-      <BottomBar>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 rounded-xl px-4"
-            disabled={step === 0 || submitting}
-            onClick={() => goTo(step - 1)}
-          >
-            <ArrowLeft className="size-4" /> Back
-          </Button>
-          {last ? (
-            <Button type="button" className="h-12 flex-1 rounded-xl text-[15px]" disabled={submitting} onClick={submit}>
-              {submitting ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
-              {submitting ? "Submitting…" : "Submit · Job Done"}
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              className="h-12 flex-1 rounded-xl text-[15px]"
-              disabled={step === 2 && media.busy}
-              onClick={next}
-            >
-              {step === 2 && media.busy ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" /> Uploading…
-                </>
-              ) : (
-                <>
-                  Next: {STEPS[step + 1]!.label} <ArrowRight className="size-4" />
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </BottomBar>
+      <BottomBar>{actions}</BottomBar>
     </div>
   );
 }

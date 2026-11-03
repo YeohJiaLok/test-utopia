@@ -10,10 +10,17 @@ export default function Loading() {
           <Skeleton className="h-3 w-36" />
         </div>
       </div>
-      <Skeleton className="h-1.5 w-full rounded-full" />
-      <div className="space-y-2">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-4 w-64" />
+      <div className="grid grid-cols-5 gap-1.5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-1.5 rounded-full" />
+        ))}
+      </div>
+      <div className="flex items-start gap-3 pt-2">
+        <Skeleton className="size-11 rounded-2xl" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-56" />
+        </div>
       </div>
       <Skeleton className="h-36 w-full rounded-xl" />
       <div className="flex flex-wrap gap-2">

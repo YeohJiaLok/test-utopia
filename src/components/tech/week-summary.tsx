@@ -24,7 +24,7 @@ export function WeekSummary({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: EASE, delay: 0.05 }}
-      className="bg-gradient-brand relative overflow-hidden rounded-2xl p-5 text-white shadow-lg shadow-sky-500/20"
+      className="bg-gradient-brand relative overflow-hidden rounded-2xl p-5 text-white shadow-lg shadow-brand/20"
     >
       <div className="pointer-events-none absolute -top-14 -right-10 size-44 rounded-full bg-white/10 blur-2xl" />
       <p className="text-xs font-semibold tracking-wider text-white/80 uppercase">This week</p>

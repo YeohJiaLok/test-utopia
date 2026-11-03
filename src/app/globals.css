@@ -142,6 +142,74 @@
   --sidebar-ring: oklch(0.66 0.14 240);
 }
 
+/* -----------------------------------------------------------------------------
+ * Portal themes. The app shell sets data-portal on its root; each portal gets its
+ * own accent (primary, brand gradient, focus ring, sidebar highlight, chart-1) so
+ * users always know where they are. Workflow status colours stay universal.
+ *   admin      → indigo   ("control desk")
+ *   technician → emerald  ("field")
+ *   manager    → azure    (the Sejuk brand, "insight")
+ * --------------------------------------------------------------------------- */
+[data-portal="admin"] {
+  --primary: oklch(0.51 0.2 274);
+  --ring: oklch(0.58 0.18 274);
+  --brand: oklch(0.55 0.21 274);
+  --brand-2: oklch(0.66 0.17 300);
+  --accent: oklch(0.955 0.022 280);
+  --accent-foreground: oklch(0.32 0.12 274);
+  --chart-1: oklch(0.55 0.2 274);
+  --sidebar-primary: oklch(0.51 0.2 274);
+  --sidebar-accent: oklch(0.95 0.025 280);
+  --sidebar-accent-foreground: oklch(0.3 0.1 274);
+  --sidebar-ring: oklch(0.58 0.18 274);
+  --portal-tint: oklch(0.55 0.21 274 / 0.06);
+}
+[data-portal="technician"] {
+  --primary: oklch(0.54 0.13 163);
+  --ring: oklch(0.6 0.13 163);
+  --brand: oklch(0.6 0.14 163);
+  --brand-2: oklch(0.72 0.12 190);
+  --accent: oklch(0.96 0.025 165);
+  --accent-foreground: oklch(0.32 0.08 163);
+  --chart-1: oklch(0.6 0.14 163);
+  --sidebar-primary: oklch(0.54 0.13 163);
+  --sidebar-accent: oklch(0.955 0.03 165);
+  --sidebar-accent-foreground: oklch(0.3 0.08 163);
+  --sidebar-ring: oklch(0.6 0.13 163);
+  --portal-tint: oklch(0.6 0.14 163 / 0.07);
+}
+[data-portal="manager"] {
+  --portal-tint: oklch(0.62 0.15 235 / 0.06);
+}
+.dark [data-portal="admin"] {
+  --primary: oklch(0.7 0.16 278);
+  --primary-foreground: oklch(0.16 0.03 274);
+  --ring: oklch(0.66 0.16 278);
+  --brand: oklch(0.68 0.17 278);
+  --brand-2: oklch(0.76 0.14 305);
+  --accent: oklch(0.28 0.05 278);
+  --accent-foreground: oklch(0.95 0.02 280);
+  --chart-1: oklch(0.7 0.16 278);
+  --sidebar-primary: oklch(0.7 0.16 278);
+  --sidebar-accent: oklch(0.27 0.05 278);
+  --sidebar-accent-foreground: oklch(0.96 0.01 280);
+  --portal-tint: oklch(0.68 0.17 278 / 0.08);
+}
+.dark [data-portal="technician"] {
+  --primary: oklch(0.74 0.14 163);
+  --primary-foreground: oklch(0.17 0.03 163);
+  --ring: oklch(0.7 0.13 163);
+  --brand: oklch(0.72 0.14 163);
+  --brand-2: oklch(0.8 0.11 190);
+  --accent: oklch(0.28 0.04 165);
+  --accent-foreground: oklch(0.95 0.02 165);
+  --chart-1: oklch(0.74 0.14 163);
+  --sidebar-primary: oklch(0.74 0.14 163);
+  --sidebar-accent: oklch(0.27 0.04 165);
+  --sidebar-accent-foreground: oklch(0.96 0.01 165);
+  --portal-tint: oklch(0.72 0.14 163 / 0.08);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

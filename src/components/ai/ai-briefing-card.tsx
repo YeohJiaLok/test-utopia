@@ -206,7 +206,7 @@ export function AiBriefingCard({ className }: { className?: string }) {
       <section className="bg-card relative overflow-hidden rounded-[calc(1rem-1px)] p-5">
         <div aria-hidden className="bg-brand/10 pointer-events-none absolute -top-24 -right-20 size-56 rounded-full blur-3xl" />
         <header className="relative mb-4 flex flex-wrap items-center gap-3">
-          <span className="bg-gradient-brand flex size-8 items-center justify-center rounded-lg text-white shadow-sm shadow-sky-500/25">
+          <span className="bg-gradient-brand flex size-8 items-center justify-center rounded-lg text-white shadow-sm shadow-brand/25">
             <Sparkles className="size-4" />
           </span>
           <div className="min-w-0 flex-1">

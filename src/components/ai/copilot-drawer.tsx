@@ -34,7 +34,7 @@ export function CopilotDrawer() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.96 }}
             aria-label="Open Ops Copilot"
-            className="bg-gradient-brand animate-pulse-ring fixed right-5 bottom-5 z-40 flex h-12 items-center gap-2 rounded-full pr-4 pl-3.5 text-sm font-medium text-white shadow-lg shadow-sky-500/30 lg:right-8 lg:bottom-8"
+            className="bg-gradient-brand animate-pulse-ring fixed right-5 bottom-5 z-40 flex h-12 items-center gap-2 rounded-full pr-4 pl-3.5 text-sm font-medium text-white shadow-lg shadow-brand/30 lg:right-8 lg:bottom-8"
           >
             <Sparkles className="size-5" />
             <span className="hidden sm:inline">Ask Copilot</span>
@@ -46,7 +46,7 @@ export function CopilotDrawer() {
       <Sheet open={open && !hidden} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-lg">
           <div className="flex items-center gap-3 border-b px-4 py-3 pr-12">
-            <span className="bg-gradient-brand flex size-8 items-center justify-center rounded-lg text-white shadow-sm shadow-sky-500/25">
+            <span className="bg-gradient-brand flex size-8 items-center justify-center rounded-lg text-white shadow-sm shadow-brand/25">
               <Sparkles className="size-4" />
             </span>
             <div className="min-w-0 flex-1">

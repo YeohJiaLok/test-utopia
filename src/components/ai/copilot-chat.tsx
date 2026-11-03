@@ -21,7 +21,7 @@ function AssistantAvatar({ busy }: { busy?: boolean }) {
   return (
     <span className="relative mt-0.5 flex size-7 shrink-0 items-center justify-center">
       {busy && <span className="bg-brand/30 absolute inset-0 animate-ping rounded-lg" />}
-      <span className="bg-gradient-brand relative flex size-7 items-center justify-center rounded-lg text-white shadow-sm shadow-sky-500/25">
+      <span className="bg-gradient-brand relative flex size-7 items-center justify-center rounded-lg text-white shadow-sm shadow-brand/25">
         <Sparkles className="size-3.5" />
       </span>
     </span>
@@ -131,7 +131,7 @@ function EmptyIntro({ onAsk, compact }: { onAsk: (q: string) => void; compact: b
   return (
     <div className={cn("flex h-full flex-col justify-center", compact ? "py-6" : "py-10")}>
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: EASE }} className="text-center">
-        <div className="bg-gradient-brand mx-auto flex size-11 items-center justify-center rounded-2xl text-white shadow-lg shadow-sky-500/25">
+        <div className="bg-gradient-brand mx-auto flex size-11 items-center justify-center rounded-2xl text-white shadow-lg shadow-brand/25">
           <Sparkles className="size-5" />
         </div>
         <h2 className="mt-4 text-base font-semibold tracking-tight">Ask about your operations</h2>

@@ -56,7 +56,7 @@ export function StepCharges({
 
       <StepError message={error} />
 
-      <div className="bg-gradient-brand relative overflow-hidden rounded-2xl p-5 text-white shadow-lg shadow-sky-500/20">
+      <div className="bg-gradient-brand relative overflow-hidden rounded-2xl p-5 text-white shadow-lg shadow-brand/20">
         <div className="pointer-events-none absolute -top-12 -right-12 size-40 rounded-full bg-white/10 blur-2xl" />
         <p className="flex items-center gap-1.5 text-xs font-medium text-white/85">
           <Equal className="size-3.5" /> Final amount

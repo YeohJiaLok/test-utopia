@@ -64,7 +64,7 @@ function ScanOverlay({ step }: { step: number }) {
         animate={{ top: ["-15%", "100%"] }}
         transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", repeatType: "reverse" }}
       >
-        <div className="bg-brand absolute inset-x-0 bottom-0 h-0.5 shadow-[0_0_14px_2px] shadow-sky-400/70" />
+        <div className="bg-brand absolute inset-x-0 bottom-0 h-0.5 shadow-[0_0_14px_2px] shadow-brand/70" />
       </motion.div>
       <div className="absolute inset-x-0 bottom-0 flex justify-center p-3">
         <AnimatePresence mode="wait">

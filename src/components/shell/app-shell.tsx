@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -8,7 +8,7 @@ import { Menu, Search, Snowflake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { NAV, type NavSection } from "@/lib/routes";
-import type { Notification, SessionUser } from "@/lib/types";
+import type { AppRole, Notification, SessionUser } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EASE } from "@/components/motion";
 import { NavIcon } from "./nav-icon";
@@ -25,17 +25,43 @@ function isActive(pathname: string, href: string, all: string[]) {
   return !all.some((h) => h !== href && h.startsWith(href) && (pathname === h || pathname.startsWith(`${h}/`)));
 }
 
-function Brand() {
+/** Each portal has its own name and accent colour (see [data-portal] in globals.css). */
+const PORTAL: Record<AppRole, string> = { admin: "Admin Console", technician: "Field App", manager: "Manager Hub" };
+
+/**
+ * Dialogs, sheets and popovers render in portals under <body>, outside the shell, so the
+ * portal theme is mirrored onto <body> too.
+ */
+function usePortalTheme(role: AppRole) {
+  useEffect(() => {
+    document.body.dataset.portal = role;
+    return () => {
+      delete document.body.dataset.portal;
+    };
+  }, [role]);
+}
+
+function Brand({ role }: { role: AppRole }) {
   return (
-    <Link href="/" className="flex items-center gap-2.5 px-2">
-      <span className="bg-gradient-brand flex size-8 items-center justify-center rounded-lg text-white shadow-md shadow-sky-500/25">
+    <Link href="/" className="group flex items-center gap-2.5 px-2">
+      <span className="bg-gradient-brand shadow-brand/30 flex size-8 items-center justify-center rounded-lg text-white shadow-md transition-transform duration-300 group-hover:scale-105 group-hover:rotate-12">
         <Snowflake className="size-4.5" />
       </span>
       <span className="leading-tight">
-        <span className="block text-sm font-semibold">Sejuk Ops</span>
-        <span className="text-muted-foreground block text-[11px]">Service operations</span>
+        <span className="block text-sm font-semibold tracking-tight">Sejuk Ops</span>
+        <span className="text-primary block text-[11px] font-medium">{PORTAL[role]}</span>
       </span>
     </Link>
+  );
+}
+
+/** Soft accent wash at the top of every page, in the portal colour. */
+function PortalGlow() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,var(--portal-tint),transparent_70%)]"
+    />
   );
 }
 
@@ -136,15 +162,18 @@ export function AppShell({
   const sections = NAV[user.role];
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  usePortalTheme(user.role);
 
   // Technicians get a mobile-first app layout with bottom tabs on every screen size.
   if (user.role === "technician") {
     const tabs = sections.flatMap((s) => s.items);
     return (
-      <div className="bg-muted/40 min-h-dvh">
-        <header className="bg-background/85 sticky top-0 z-30 border-b backdrop-blur-md">
+      <div data-portal={user.role} className="bg-muted/40 relative isolate min-h-dvh">
+        <PortalGlow />
+        <header className="bg-background/80 sticky top-0 z-30 border-b backdrop-blur-xl">
+          <div className="bg-gradient-brand absolute inset-x-0 top-0 h-0.5" />
           <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
-            <Brand />
+            <Brand role={user.role} />
             <div className="flex items-center gap-1">
               <NotificationBell userId={user.id} role={user.role} initial={notifications} />
               <UserMenu user={user} compact />
@@ -195,9 +224,11 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[256px_1fr]">
+    <div data-portal={user.role} className="relative isolate min-h-dvh lg:grid lg:grid-cols-[256px_1fr]">
+      <PortalGlow />
       <aside className="bg-sidebar sticky top-0 hidden h-dvh flex-col border-r px-3 py-4 lg:flex">
-        <Brand />
+        <div className="bg-gradient-brand absolute inset-x-0 top-0 h-0.5" />
+        <Brand role={user.role} />
         <div className="scrollbar-thin mt-6 flex-1 overflow-y-auto">
           <SidebarNav sections={sections} badges={badges} layoutId="nav-active" />
         </div>
@@ -209,7 +240,7 @@ export function AppShell({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="bg-sidebar w-72 p-4">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <Brand />
+          <Brand role={user.role} />
           <div className="mt-6">
             <SidebarNav sections={sections} badges={badges} onNavigate={() => setMobileOpen(false)} layoutId="nav-active-mobile" />
           </div>

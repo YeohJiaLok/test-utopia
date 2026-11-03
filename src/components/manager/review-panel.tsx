@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, Lock, RotateCcw, ShieldAlert, Star } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, Loader2, Lock, RotateCcw, ShieldAlert, Star } from "lucide-react";
 import { toast } from "sonner";
 import { closeOrder, reviewOrder } from "@/app/(app)/manager/actions";
 import { EASE } from "@/components/motion";
@@ -119,12 +119,17 @@ export function ReviewPanel(props: ReviewPanelProps) {
   };
 
   return (
-    <section className="bg-card rounded-xl border shadow-sm" aria-labelledby="review-panel-title">
-      <header className="flex items-center justify-between gap-2 border-b px-4 py-3">
-        <h2 id="review-panel-title" className="text-sm font-semibold">
-          Manager review
-        </h2>
-        <span className="text-muted-foreground text-xs">{STATUS_META[status].description}</span>
+    <section className="bg-card overflow-hidden rounded-xl border shadow-sm" aria-labelledby="review-panel-title">
+      <header className="flex items-start gap-3 border-b px-4 py-3.5">
+        <span className="bg-gradient-brand shadow-brand/25 flex size-8 shrink-0 items-center justify-center rounded-lg text-white shadow-sm">
+          <ClipboardCheck className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <h2 id="review-panel-title" className="text-sm leading-5 font-semibold">
+            Manager review
+          </h2>
+          <p className="text-muted-foreground text-xs">{STATUS_META[status].description}</p>
+        </div>
       </header>
 
       <div className="space-y-4 p-4">
@@ -204,11 +209,11 @@ export function ReviewPanel(props: ReviewPanelProps) {
               {errors.form && <p className="text-destructive rounded-md bg-red-500/5 px-3 py-2 text-xs font-medium">{errors.form}</p>}
 
               <div className="grid gap-2">
-                <Button size="lg" className="h-10" disabled={pending} onClick={() => decide("approved")}>
+                <Button size="lg" className="shadow-brand/20 h-11 shadow-sm lg:h-10" disabled={pending} onClick={() => decide("approved")}>
                   {busy === "approved" ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
                   {highFlags ? `Approve despite ${highFlags} high flag${highFlags > 1 ? "s" : ""}` : "Approve job"}
                 </Button>
-                <Button size="lg" variant="destructive" className="h-10" disabled={pending} onClick={() => decide("rework")}>
+                <Button size="lg" variant="destructive" className="h-11 lg:h-10" disabled={pending} onClick={() => decide("rework")}>
                   {busy === "rework" ? <Loader2 className="animate-spin" /> : <RotateCcw />}
                   Request rework
                 </Button>
@@ -238,7 +243,7 @@ export function ReviewPanel(props: ReviewPanelProps) {
                 </p>
               )}
               {canClose && (
-                <Button size="lg" className="h-10 w-full" disabled={pending} onClick={close}>
+                <Button size="lg" className="h-11 w-full lg:h-10" disabled={pending} onClick={close}>
                   {busy === "close" ? <Loader2 className="animate-spin" /> : <Lock />}
                   Close order
                 </Button>
@@ -252,26 +257,35 @@ export function ReviewPanel(props: ReviewPanelProps) {
       </div>
 
       {queue.total > 0 && (
-        <footer className="text-muted-foreground flex items-center justify-between gap-2 border-t px-4 py-2.5 text-xs">
+        <footer className="bg-muted/30 text-muted-foreground grid grid-cols-[1fr_auto_1fr] items-center gap-1 border-t px-1.5 py-1.5 text-xs">
           {queue.prevId ? (
-            <Link href={`/manager/orders/${queue.prevId}`} className="hover:text-foreground inline-flex items-center gap-0.5">
+            <Link
+              href={`/manager/orders/${queue.prevId}`}
+              className="hover:text-foreground hover:bg-background inline-flex h-11 items-center gap-0.5 justify-self-start rounded-lg px-2.5 font-medium transition-colors lg:h-8"
+            >
               <ChevronLeft className="size-3.5" /> Prev
             </Link>
           ) : (
-            <span className="opacity-40">
-              <ChevronLeft className="inline size-3.5" /> Prev
+            <span className="inline-flex h-11 items-center gap-0.5 px-2.5 opacity-40 lg:h-8">
+              <ChevronLeft className="size-3.5" /> Prev
             </span>
           )}
-          <Link href="/manager/reviews" className="hover:text-foreground tabular">
+          <Link
+            href="/manager/reviews"
+            className="hover:text-foreground hover:bg-background tabular inline-flex h-11 items-center rounded-lg px-2.5 transition-colors lg:h-8"
+          >
             {queue.position > 0 ? `${queue.position} of ${queue.total} in queue` : `${queue.total} in queue`}
           </Link>
           {queue.nextId ? (
-            <Link href={`/manager/orders/${queue.nextId}`} className="hover:text-foreground inline-flex items-center gap-0.5">
+            <Link
+              href={`/manager/orders/${queue.nextId}`}
+              className="hover:text-foreground hover:bg-background inline-flex h-11 items-center gap-0.5 justify-self-end rounded-lg px-2.5 font-medium transition-colors lg:h-8"
+            >
               Next <ChevronRight className="size-3.5" />
             </Link>
           ) : (
-            <span className="opacity-40">
-              Next <ChevronRight className="inline size-3.5" />
+            <span className="inline-flex h-11 items-center gap-0.5 justify-self-end px-2.5 opacity-40 lg:h-8">
+              Next <ChevronRight className="size-3.5" />
             </span>
           )}
         </footer>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { LayoutGroup, motion } from "motion/react";
-import { CalendarClock, Star, Trophy } from "lucide-react";
+import { CalendarClock, ChevronDown, Star, Trophy } from "lucide-react";
 import { EASE } from "@/components/motion";
 import { EmptyState } from "@/components/shared/empty-state";
 import type { TechnicianKpi } from "@/lib/types";
@@ -11,6 +11,9 @@ import { cn } from "@/lib/utils";
 import { MiniToggle } from "./charts/chart-kit";
 
 type SortKey = "jobs" | "revenue";
+
+/** Rows shown before "Show all" — keeps the dashboard scannable with large teams. */
+const COLLAPSED_ROWS = 8;
 
 const MEDALS = [
   { ring: "ring-amber-400/70", badge: "bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950", label: "Gold" },
@@ -36,6 +39,7 @@ function Metric({ label, children, className }: { label: string; children: React
  */
 export function TechnicianLeaderboard({ rows, periodLabel }: { rows: TechnicianKpi[]; periodLabel?: string }) {
   const [sort, setSort] = useState<SortKey>("jobs");
+  const [expanded, setExpanded] = useState(false);
 
   const { sorted, total, max } = useMemo(() => {
     const value = (r: TechnicianKpi) => (sort === "jobs" ? r.jobs_completed : r.total_amount);
@@ -46,24 +50,27 @@ export function TechnicianLeaderboard({ rows, periodLabel }: { rows: TechnicianK
     const max = Math.max(0, ...rows.map(value));
     return { sorted, total, max };
   }, [rows, sort]);
+  const collapsible = sorted.length > COLLAPSED_ROWS + 2;
+  const shown = collapsible && !expanded ? sorted.slice(0, COLLAPSED_ROWS) : sorted;
 
   return (
     <section className="bg-card rounded-xl border shadow-xs" aria-labelledby="leaderboard-title">
       <header className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:px-5">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500/12 text-amber-600 dark:text-amber-300">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/12 text-amber-600 ring-1 ring-amber-500/15 ring-inset dark:text-amber-300">
             <Trophy className="size-4" />
           </span>
-          <div>
-            <h2 id="leaderboard-title" className="text-sm font-semibold tracking-tight">
+          <div className="min-w-0">
+            <h2 id="leaderboard-title" className="text-sm leading-5 font-semibold tracking-tight">
               Technician leaderboard
             </h2>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground mt-0.5 text-xs text-pretty">
               Jobs completed, amount collected and postponements{periodLabel ? ` · ${periodLabel}` : ""}
             </p>
           </div>
         </div>
         <MiniToggle
+          className="max-sm:w-full"
           label="Rank technicians by"
           value={sort}
           onChange={setSort}
@@ -83,7 +90,7 @@ export function TechnicianLeaderboard({ rows, periodLabel }: { rows: TechnicianK
           <div
             className={cn(
               GRID,
-              "text-muted-foreground hidden border-y px-5 py-2 text-[11px] font-medium tracking-wide uppercase md:grid",
+              "text-muted-foreground bg-muted/30 hidden border-y px-5 py-2 text-[11px] font-medium tracking-wide uppercase md:grid",
             )}
             aria-hidden
           >
@@ -96,8 +103,11 @@ export function TechnicianLeaderboard({ rows, periodLabel }: { rows: TechnicianK
             <span className="text-right">Rating</span>
           </div>
           <LayoutGroup>
-            <ol aria-label={`Technicians ranked by ${sort === "jobs" ? "jobs completed" : "total amount"}`} className="divide-y">
-              {sorted.map((r, i) => {
+            <ol
+              aria-label={`Technicians ranked by ${sort === "jobs" ? "jobs completed" : "total amount"}`}
+              className="divide-y border-t md:border-t-0"
+            >
+              {shown.map((r, i) => {
                 const value = sort === "jobs" ? r.jobs_completed : r.total_amount;
                 const share = total ? value / total : 0;
                 const width = max ? (value / max) * 100 : 0;
@@ -109,7 +119,11 @@ export function TechnicianLeaderboard({ rows, periodLabel }: { rows: TechnicianK
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: EASE, delay: Math.min(i, 10) * 0.04, layout: { duration: 0.45, ease: EASE } }}
-                    className={cn(GRID, "hover:bg-muted/40 px-4 py-3 transition-colors sm:px-5", i === 0 && medal && "bg-amber-500/[0.03]")}
+                    className={cn(
+                      GRID,
+                      "hover:bg-muted/40 px-4 py-3.5 transition-colors sm:px-5 md:py-3",
+                      i === 0 && medal && "bg-gradient-to-r from-amber-500/[0.06] to-transparent",
+                    )}
                   >
                     <span className="flex justify-center">
                       {medal ? (
@@ -149,14 +163,14 @@ export function TechnicianLeaderboard({ rows, periodLabel }: { rows: TechnicianK
                               transition={{ duration: 0.8, ease: EASE, delay: 0.15 + Math.min(i, 10) * 0.04 }}
                             />
                           </div>
-                          <span className="text-muted-foreground tabular w-14 shrink-0 text-right text-[10px]">
-                            {(share * 100).toFixed(0)}% of team
+                          <span className="text-muted-foreground tabular shrink-0 text-right text-[10px] whitespace-nowrap md:w-16">
+                            {(share * 100).toFixed(0)}%<span className="max-sm:hidden"> of team</span>
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <dl className="col-span-2 mt-2 grid grid-cols-5 gap-2 md:col-span-5 md:mt-0 md:grid-cols-subgrid">
+                    <dl className="bg-muted/40 col-span-2 mt-3 grid grid-cols-4 gap-2 rounded-lg px-2.5 py-2 md:col-span-5 md:mt-0 md:grid-cols-subgrid md:bg-transparent md:p-0">
                       <Metric label="Jobs" className={cn(sort === "jobs" && "font-semibold")}>
                         {formatNumber(r.jobs_completed)}
                       </Metric>
@@ -164,7 +178,7 @@ export function TechnicianLeaderboard({ rows, periodLabel }: { rows: TechnicianK
                         <span className="md:hidden">{formatMYR(r.total_amount, { compact: true })}</span>
                         <span className="hidden md:inline">{formatMYR(r.total_amount)}</span>
                       </Metric>
-                      <Metric label="Avg">
+                      <Metric label="Avg" className="hidden md:block">
                         <span className="text-muted-foreground md:text-foreground">
                           {r.jobs_completed ? formatMYR(r.avg_ticket, { compact: r.avg_ticket >= 10_000 }) : "—"}
                         </span>
@@ -202,7 +216,18 @@ export function TechnicianLeaderboard({ rows, periodLabel }: { rows: TechnicianK
               })}
             </ol>
           </LayoutGroup>
-          <div className="text-muted-foreground flex flex-wrap justify-between gap-2 border-t px-4 py-2.5 text-xs sm:px-5">
+          {collapsible && (
+            <button
+              type="button"
+              onClick={() => setExpanded((e) => !e)}
+              aria-expanded={expanded}
+              className="text-primary hover:bg-primary/5 focus-visible:ring-ring/50 flex h-11 w-full items-center justify-center gap-1.5 border-t text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset sm:h-9"
+            >
+              {expanded ? "Show top " + COLLAPSED_ROWS : `Show all ${sorted.length} technicians`}
+              <ChevronDown className={cn("size-3.5 transition-transform duration-300", expanded && "rotate-180")} aria-hidden />
+            </button>
+          )}
+          <div className="text-muted-foreground bg-muted/20 flex flex-wrap justify-between gap-2 rounded-b-xl border-t px-4 py-2.5 text-xs sm:px-5">
             <span>
               Team total: <span className="text-foreground tabular font-medium">{formatNumber(rows.reduce((s, r) => s + r.jobs_completed, 0))}</span> jobs ·{" "}
               <span className="text-foreground tabular font-medium">{formatMYR(rows.reduce((s, r) => s + r.total_amount, 0))}</span>

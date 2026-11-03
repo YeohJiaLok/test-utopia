@@ -18,10 +18,21 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 const QUICK_NOTES = ["Verified with technician — legitimate", "Customer approved extra charges", "Evidence re-uploaded", "False positive"];
 
-export function ResolveFlagDialog({ flagId, title, size = "sm" }: { flagId: string; title: string; size?: "sm" | "default" }) {
+export function ResolveFlagDialog({
+  flagId,
+  title,
+  size = "sm",
+  className,
+}: {
+  flagId: string;
+  title: string;
+  size?: "sm" | "default";
+  className?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
@@ -45,7 +56,7 @@ export function ResolveFlagDialog({ flagId, title, size = "sm" }: { flagId: stri
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size={size} />}>
+      <DialogTrigger render={<Button variant="outline" size={size} className={className} />}>
         <CheckCircle2 /> Resolve
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -79,7 +90,12 @@ export function ResolveFlagDialog({ flagId, title, size = "sm" }: { flagId: stri
                   key={q}
                   type="button"
                   onClick={() => setNote(q)}
-                  className="bg-muted text-muted-foreground hover:text-foreground rounded-full px-2 py-0.5 text-[11px] transition-colors"
+                  className={cn(
+                    "h-8 rounded-full border px-2.5 text-[11px] transition-colors sm:h-6 sm:px-2",
+                    note === q
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground hover:text-foreground border-transparent",
+                  )}
                 >
                   {q}
                 </button>
@@ -88,8 +104,8 @@ export function ResolveFlagDialog({ flagId, title, size = "sm" }: { flagId: stri
             {error && <p className="text-destructive text-xs font-medium">{error}</p>}
           </div>
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
-            <Button type="submit" disabled={pending || note.trim().length < 3}>
+            <DialogClose render={<Button variant="outline" type="button" className="max-sm:h-11" />}>Cancel</DialogClose>
+            <Button type="submit" className="max-sm:h-11" disabled={pending || note.trim().length < 3}>
               {pending ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
               Mark resolved
             </Button>

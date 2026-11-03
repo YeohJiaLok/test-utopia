@@ -37,7 +37,7 @@ export default async function FlagsPage({
   const flags = await getFlags(showResolved);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="AI governance"
         title="AI Supervisor"
@@ -45,29 +45,31 @@ export default async function FlagsPage({
         actions={<RescanButton />}
       />
 
-      <section aria-label="How the AI Supervisor works" className="bg-card rounded-xl border p-4">
-        <div className="grid gap-4 md:grid-cols-3">
+      <section aria-label="How the AI Supervisor works" className="bg-card overflow-hidden rounded-xl border shadow-xs max-md:order-last">
+        <ol className="grid divide-y md:grid-cols-3 md:divide-x md:divide-y-0">
           {STEPS.map((s, i) => (
-            <div key={s.title} className="flex gap-3">
-              <span className="bg-primary/8 text-primary relative flex size-8 shrink-0 items-center justify-center rounded-lg">
+            <li key={s.title} className="relative flex gap-3 p-4">
+              <span className="bg-primary/8 text-primary ring-primary/10 relative flex size-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset">
                 <s.icon className="size-4" />
                 <span className="bg-card text-muted-foreground absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full border text-[9px] font-semibold">
                   {i + 1}
                 </span>
               </span>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-medium">{s.title}</p>
-                <p className="text-muted-foreground text-xs text-pretty">{s.body}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed text-pretty">{s.body}</p>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
-        <p className="text-muted-foreground mt-3 flex items-center gap-1.5 border-t pt-3 text-[11px]">
-          <ScrollText className="size-3.5" />
-          Every model call and tool use is logged —
-          <Link href="/audit" className="text-primary hover:underline">
-            see the audit log
-          </Link>
+        </ol>
+        <p className="text-muted-foreground bg-muted/30 flex items-start gap-2 border-t px-4 py-2.5 text-xs">
+          <ScrollText className="mt-px size-3.5 shrink-0" aria-hidden />
+          <span>
+            Every model call and tool use is logged —{" "}
+            <Link href="/audit" className="text-primary font-medium hover:underline">
+              see the audit log
+            </Link>
+          </span>
         </p>
       </section>
 

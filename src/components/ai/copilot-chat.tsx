@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowUp, Copy, Database, FileText, RotateCcw, ShieldCheck, Sparkles, Square } from "lucide-react";
+import { AlertTriangle, ArrowUp, Copy, Database, FileText, KeyRound, RotateCcw, ShieldCheck, Sparkles, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EASE } from "@/components/motion";
@@ -16,6 +16,25 @@ import { CopilotMarkdown } from "./copilot-markdown";
 import { useCopilot, type AssistantTurn } from "./use-copilot";
 
 const orderHref = (orderId: string) => `/manager/orders/${orderId}`;
+const NOT_CONFIGURED = /not configured|ANTHROPIC_API_KEY/i;
+
+/** Shown instead of a red error when the server simply has no model key yet (degraded mode). */
+function SetupNotice({ message }: { message?: string }) {
+  return (
+    <div className="bg-muted/40 rounded-xl border border-dashed p-3.5 text-sm">
+      <p className="flex items-center gap-2 font-medium">
+        <span className="bg-warning/15 text-warning flex size-6 items-center justify-center rounded-md">
+          <KeyRound className="size-3.5" />
+        </span>
+        AI model not connected yet
+      </p>
+      <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
+        {message ?? "The Ops Copilot needs an Anthropic API key on the server."} Dashboards, the rule-based briefing and AI Supervisor
+        rules keep working without it.
+      </p>
+    </div>
+  );
+}
 
 function AssistantAvatar({ busy }: { busy?: boolean }) {
   return (
@@ -93,12 +112,15 @@ function AssistantMessage({ turn, isLatest }: { turn: AssistantTurn; isLatest: b
           </div>
         )}
 
-        {turn.status === "error" && (
-          <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border px-3 py-2 text-sm">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <span>{turn.error}</span>
-          </div>
-        )}
+        {turn.status === "error" &&
+          (turn.error && NOT_CONFIGURED.test(turn.error) ? (
+            <SetupNotice message={turn.error} />
+          ) : (
+            <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border px-3 py-2 text-sm">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>{turn.error}</span>
+            </div>
+          ))}
         {turn.status === "stopped" && <p className="text-muted-foreground text-xs italic">Stopped.</p>}
 
         <RecordChips turn={turn} />
@@ -131,8 +153,11 @@ function EmptyIntro({ onAsk, compact }: { onAsk: (q: string) => void; compact: b
   return (
     <div className={cn("flex h-full flex-col justify-center", compact ? "py-6" : "py-10")}>
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: EASE }} className="text-center">
-        <div className="bg-gradient-brand mx-auto flex size-11 items-center justify-center rounded-2xl text-white shadow-lg shadow-brand/25">
-          <Sparkles className="size-5" />
+        <div className="relative mx-auto size-12">
+          <span aria-hidden className="bg-brand/25 absolute -inset-3 rounded-3xl blur-xl" />
+          <div className="bg-gradient-brand shadow-brand/25 relative flex size-12 items-center justify-center rounded-2xl text-white shadow-lg">
+            <Sparkles className="size-5" />
+          </div>
         </div>
         <h2 className="mt-4 text-base font-semibold tracking-tight">Ask about your operations</h2>
         <p className="text-muted-foreground mx-auto mt-1 max-w-sm text-sm text-pretty">
@@ -152,9 +177,10 @@ function EmptyIntro({ onAsk, compact }: { onAsk: (q: string) => void; compact: b
             onClick={() => onAsk(q)}
             variants={{ hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE } } }}
             whileHover={{ y: -1 }}
-            className="bg-card hover:border-primary/40 hover:bg-primary/[0.03] rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors"
+            className="group bg-card hover:border-primary/40 hover:bg-primary/[0.03] focus-visible:ring-ring/50 flex min-h-11 items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-left text-sm shadow-xs transition-colors outline-none focus-visible:ring-3"
           >
-            {q}
+            <Sparkles className="text-muted-foreground group-hover:text-primary mt-0.5 size-3.5 shrink-0 transition-colors" aria-hidden />
+            <span>{q}</span>
           </motion.button>
         ))}
       </motion.div>
@@ -221,7 +247,7 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
         </div>
       </div>
 
-      <div className={cn("bg-background/80 border-t backdrop-blur", compact ? "p-3" : "p-4")}>
+      <div className={cn("bg-background/80 border-t backdrop-blur", compact ? "p-3" : "p-3 sm:p-4")}>
         <form
           className={cn("mx-auto w-full", !compact && "max-w-3xl")}
           onSubmit={(e) => {
@@ -231,7 +257,15 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
         >
           <div className="bg-card focus-within:border-ring focus-within:ring-ring/30 relative flex items-end gap-2 rounded-xl border p-1.5 shadow-sm transition-shadow focus-within:ring-3">
             {turns.length > 0 && (
-              <Button type="button" variant="ghost" size="icon-sm" onClick={reset} aria-label="New conversation" title="New conversation" className="mb-0.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={reset}
+                aria-label="New conversation"
+                title="New conversation"
+                className="mb-0.5 size-10 sm:size-7"
+              >
                 <RotateCcw />
               </Button>
             )}
@@ -249,14 +283,20 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
               placeholder="Ask about jobs, technicians, workload…"
               aria-label="Ask the Ops Copilot"
               aria-invalid={tooLong || undefined}
-              className="max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-1.5 shadow-none focus-visible:ring-0 dark:bg-transparent"
+              className="max-h-40 min-h-10 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-base shadow-none focus-visible:ring-0 sm:min-h-9 sm:py-1.5 sm:text-sm dark:bg-transparent"
             />
             {pending ? (
-              <Button type="button" size="icon" variant="secondary" onClick={stop} aria-label="Stop generating" className="mb-0.5 shrink-0">
+              <Button type="button" size="icon" variant="secondary" onClick={stop} aria-label="Stop generating" className="mb-0.5 size-10 shrink-0 sm:size-8">
                 <Square className="size-3 fill-current" />
               </Button>
             ) : (
-              <Button type="submit" size="icon" disabled={!draft.trim() || tooLong} aria-label="Send" className="bg-gradient-brand mb-0.5 shrink-0 text-white">
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!draft.trim() || tooLong}
+                aria-label="Send"
+                className="bg-gradient-brand shadow-brand/25 mb-0.5 size-10 shrink-0 text-white shadow-sm sm:size-8"
+              >
                 <ArrowUp />
               </Button>
             )}

@@ -8,10 +8,10 @@ export default function FlagsLoading() {
       <Bone className="h-24 w-full rounded-xl" />
       <div className="grid grid-cols-3 gap-2" aria-hidden>
         {Array.from({ length: 3 }, (_, i) => (
-          <Bone key={i} className="h-16 rounded-xl" />
+          <Bone key={i} className="h-24 rounded-xl" />
         ))}
       </div>
-      <Bone className="h-12 w-full rounded-xl" />
+      <Bone className="h-36 w-full rounded-xl lg:h-14" />
       <div className="grid gap-3 xl:grid-cols-2" aria-hidden>
         {Array.from({ length: 4 }, (_, i) => (
           <div key={i} className="bg-card space-y-2.5 rounded-xl border p-4">

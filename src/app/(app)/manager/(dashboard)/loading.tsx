@@ -6,7 +6,7 @@ export default function ManagerDashboardLoading() {
       <LoadingLabel label="Loading performance dashboard" />
       <HeaderBones />
       <div className="flex items-center justify-between gap-3" aria-hidden>
-        <Bone className="h-9 w-96 max-w-full rounded-lg" />
+        <Bone className="h-11 w-full rounded-lg sm:h-9 sm:w-96" />
         <Bone className="hidden h-3 w-56 sm:block" />
       </div>
       <StatBones />

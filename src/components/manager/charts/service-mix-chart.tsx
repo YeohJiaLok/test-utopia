@@ -59,9 +59,10 @@ export function ServiceMixChart({ data }: { data: ServiceMixRow[] }) {
   const fmt = (n: number) => (metric === "jobs" ? formatNumber(n) : formatMYR(n));
 
   return (
-    <div className="space-y-4">
+    <div className="@container relative space-y-4">
       <div className="flex justify-end">
         <MiniToggle
+          className="max-sm:w-full"
           label="Service mix metric"
           value={metric}
           onChange={setMetric}
@@ -73,9 +74,12 @@ export function ServiceMixChart({ data }: { data: ServiceMixRow[] }) {
       </div>
 
       {total === 0 ? (
-        <p className="text-muted-foreground py-10 text-center text-sm">No completed jobs in this period.</p>
+        <div className="text-muted-foreground flex flex-col items-center gap-2 py-10 text-center text-sm">
+          <span className="border-muted-foreground/30 size-20 rounded-full border-8 border-dashed" aria-hidden />
+          No completed jobs in this period.
+        </div>
       ) : (
-        <div className="grid items-center gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
+        <div className="grid items-center gap-5 @md:grid-cols-[180px_minmax(0,1fr)]">
           <div className="relative mx-auto size-[180px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -116,19 +120,21 @@ export function ServiceMixChart({ data }: { data: ServiceMixRow[] }) {
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-lg font-semibold tracking-tight">
+              <span className="tabular text-xl font-semibold tracking-tight">
                 {metric === "jobs" ? formatNumber(total) : formatMYR(total, { compact: true })}
               </span>
               <span className="text-muted-foreground text-[11px]">{metric === "jobs" ? "jobs" : "revenue"}</span>
             </div>
           </div>
 
-          <ul className="min-w-0 space-y-2.5" aria-label="Service mix breakdown">
+          <ul className="min-w-0 space-y-3" aria-label="Service mix breakdown">
             {slices.map((s, i) => (
               <li key={s.key} className="min-w-0">
                 <div className="flex items-center gap-2 text-xs">
                   <span aria-hidden className="size-2.5 shrink-0 rounded-[3px]" style={{ background: s.color }} />
-                  <span className="min-w-0 flex-1 truncate font-medium">{s.name}</span>
+                  <span className="min-w-0 flex-1 truncate font-medium" title={s.name}>
+                    {s.name}
+                  </span>
                   <span className="tabular font-semibold">{fmt(s.value)}</span>
                   <span className="text-muted-foreground tabular w-9 text-right">{(s.share * 100).toFixed(0)}%</span>
                 </div>

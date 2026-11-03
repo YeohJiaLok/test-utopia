@@ -6,6 +6,7 @@ import {
   Gauge,
   Hash,
   History,
+  KeyRound,
   Lock,
   ScrollText,
   Search,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getAnthropic } from "@/lib/ai/client";
 import { COPILOT_GUARDRAILS, TOOL_CATALOGUE, type CopilotToolName } from "@/lib/ai/catalogue";
 import { formatRelative } from "@/lib/format";
 import type { AiRun } from "@/lib/types";
@@ -60,6 +62,7 @@ export default async function AssistantPage() {
     .order("created_at", { ascending: false })
     .limit(5);
   const runs = (data ?? []) as RecentRun[];
+  const aiReady = getAnthropic() !== null;
 
   return (
     <div className="space-y-6">
@@ -69,12 +72,27 @@ export default async function AssistantPage() {
         description="A governed AI agent that plans, runs whitelisted read-only queries against live data and answers with the records it used. Every step is visible and logged."
       />
 
+      {!aiReady && (
+        <div className="border-warning/30 bg-warning/[0.06] flex items-start gap-3 rounded-xl border px-4 py-3">
+          <span className="bg-warning/15 text-warning flex size-8 shrink-0 items-center justify-center rounded-lg">
+            <KeyRound className="size-4" />
+          </span>
+          <div className="min-w-0 text-sm">
+            <p className="font-medium">Setup mode — no AI model connected</p>
+            <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+              Add <code className="bg-muted rounded px-1 font-mono text-[11px]">ANTHROPIC_API_KEY</code> to the server environment to
+              enable answers. The tool catalogue, guardrails and audit trail below are already live.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="bg-card flex h-[calc(100dvh-15rem)] min-h-[520px] flex-col overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <div className="bg-card ring-foreground/10 flex h-[calc(100dvh-13rem)] min-h-[480px] flex-col overflow-hidden rounded-xl shadow-sm ring-1 sm:min-h-[560px] lg:h-[calc(100dvh-15rem)]">
           <CopilotChat variant="page" className="flex-1" />
         </div>
 
-        <aside className="space-y-4">
+        <aside className="grid content-start gap-4 md:grid-cols-2 lg:grid-cols-1">
           <Card size="sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm">
@@ -87,12 +105,13 @@ export default async function AssistantPage() {
                   const Icon = TOOL_ICONS[tool.name];
                   return (
                     <li key={tool.name} className="flex gap-2.5">
-                      <span className="bg-muted text-muted-foreground mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md">
+                      <span className="bg-primary/8 text-primary mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md">
                         <Icon className="size-3.5" />
                       </span>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium">
-                          {tool.label} <code className="text-muted-foreground font-mono text-[10px] font-normal">{tool.name}</code>
+                        <p className="flex flex-wrap items-baseline gap-x-1.5 text-xs font-medium">
+                          {tool.label}
+                          <code className="text-muted-foreground font-mono text-[10px] font-normal break-all">{tool.name}</code>
                         </p>
                         <p className="text-muted-foreground text-xs leading-snug">{tool.summary}</p>
                       </div>
@@ -127,7 +146,7 @@ export default async function AssistantPage() {
             </CardContent>
           </Card>
 
-          <Card size="sm">
+          <Card size="sm" className="md:col-span-2 lg:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm">
                 <History className="text-muted-foreground size-4" /> Recent copilot runs

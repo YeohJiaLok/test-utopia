@@ -23,9 +23,15 @@ export function NotificationLog({ notifications }: { notifications: Notification
   const items = notifications.filter((n) => n.channel === "whatsapp");
   if (!items.length) {
     return (
-      <p className="text-muted-foreground flex items-center gap-2 text-sm">
-        <BellRing className="size-4" /> No WhatsApp messages generated for this order yet.
-      </p>
+      <div className="flex flex-col items-center rounded-lg border border-dashed px-4 py-8 text-center">
+        <span className="bg-muted text-muted-foreground mb-2 flex size-9 items-center justify-center rounded-full">
+          <BellRing className="size-4" />
+        </span>
+        <p className="text-sm font-medium">No messages yet</p>
+        <p className="text-muted-foreground mt-0.5 max-w-xs text-xs">
+          WhatsApp messages are generated automatically as this order moves through the workflow.
+        </p>
+      </div>
     );
   }
   return (

@@ -1,4 +1,4 @@
-import { ArrowRight, BatteryLow, Flame, Scale } from "lucide-react";
+import { ArrowRight, BatteryLow, Flame, Moon, Scale, Shuffle } from "lucide-react";
 import { Stagger, StaggerItem } from "@/components/motion";
 import type { WorkloadStat } from "@/lib/types";
 import { initials } from "@/lib/format";
@@ -8,11 +8,11 @@ import { OVERLOAD_Z, UNDERLOAD_Z, formatSigma, loadLevel } from "./workload";
 function Person({ w, tone }: { w: WorkloadStat; tone: "hot" | "cool" }) {
   const level = loadLevel(w);
   return (
-    <StaggerItem className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
+    <StaggerItem className="bg-card flex items-center gap-3 rounded-lg border px-3 py-2.5">
       <span
         className={cn(
           "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
-          tone === "hot" ? "bg-amber-500/12 text-amber-700 dark:text-amber-300" : "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+          tone === "hot" ? "bg-amber-500/12 text-amber-700 dark:text-amber-300" : "bg-primary/10 text-primary",
         )}
       >
         {initials(w.technician_name)}
@@ -28,7 +28,7 @@ function Person({ w, tone }: { w: WorkloadStat; tone: "hot" | "cool" }) {
           "tabular rounded-md px-1.5 py-0.5 text-xs font-semibold",
           level === "critical" && "bg-red-500/10 text-red-700 dark:text-red-300",
           level === "overloaded" && "bg-amber-500/12 text-amber-700 dark:text-amber-300",
-          level === "underloaded" && "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+          level === "underloaded" && "bg-primary/10 text-primary",
         )}
       >
         {formatSigma(w.z_score)}
@@ -53,6 +53,8 @@ export function WorkloadPanel({ data }: { data: WorkloadStat[] }) {
   const mean = data[0]?.team_mean ?? 0;
   const sd = data[0]?.team_stddev ?? 0;
   const hint = suggestion(hot, cool, data);
+  const idle = data.filter((w) => w.jobs_completed === 0).sort((a, b) => b.open_jobs - a.open_jobs);
+  const withinRange = data.length - hot.length - cool.length;
 
   return (
     <div className="space-y-4">
@@ -62,12 +64,31 @@ export function WorkloadPanel({ data }: { data: WorkloadStat[] }) {
           { label: "Std. dev.", value: sd.toFixed(1) },
           { label: "Technicians", value: String(data.length) },
         ].map((s) => (
-          <div key={s.label} className="bg-muted/60 rounded-lg px-2 py-2">
-            <dt className="text-muted-foreground text-[11px]">{s.label}</dt>
-            <dd className="tabular text-sm font-semibold">{s.value}</dd>
+          <div key={s.label} className="bg-muted/50 ring-foreground/[0.04] rounded-lg px-2 py-2.5 ring-1 ring-inset">
+            <dt className="text-muted-foreground truncate text-[11px]">{s.label}</dt>
+            <dd className="tabular mt-0.5 text-base font-semibold tracking-tight">{s.value}</dd>
           </div>
         ))}
       </dl>
+
+      {data.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-muted-foreground flex items-center justify-between text-[11px] font-medium">
+            <span>Distribution</span>
+            <span className="tabular">
+              {hot.length} high · {withinRange} in range · {cool.length} spare
+            </span>
+          </div>
+          <div className="bg-muted flex h-2 overflow-hidden rounded-full" aria-hidden>
+            <span className="h-full bg-[var(--warning)]" style={{ width: `${(hot.length / data.length) * 100}%` }} />
+            <span className="h-full bg-[var(--chart-1)]" style={{ width: `${(withinRange / data.length) * 100}%` }} />
+            <span
+              className="h-full bg-[color-mix(in_oklch,var(--chart-1)_40%,transparent)]"
+              style={{ width: `${(cool.length / data.length) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {!hot.length && !cool.length ? (
         <div className="flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
@@ -93,7 +114,7 @@ export function WorkloadPanel({ data }: { data: WorkloadStat[] }) {
           )}
           {cool.length > 0 && (
             <div className="space-y-2">
-              <h3 className="flex items-center gap-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300">
+              <h3 className="text-primary flex items-center gap-1.5 text-xs font-semibold">
                 <BatteryLow className="size-3.5" /> Spare capacity ({cool.length})
               </h3>
               <Stagger className="space-y-2" delay={0.1}>
@@ -105,7 +126,9 @@ export function WorkloadPanel({ data }: { data: WorkloadStat[] }) {
           )}
           {hint && (
             <div className="bg-primary/5 border-primary/15 rounded-lg border p-3 text-xs">
-              <p className="text-primary mb-1 font-semibold">Suggested rebalance</p>
+              <p className="text-primary mb-1.5 flex items-center gap-1.5 font-semibold">
+                <Shuffle className="size-3.5" aria-hidden /> Suggested rebalance
+              </p>
               <p className="flex flex-wrap items-center gap-1">
                 Route new jobs from <span className="font-medium">{hint.from.technician_name}</span>
                 <ArrowRight className="text-muted-foreground size-3" />
@@ -117,6 +140,26 @@ export function WorkloadPanel({ data }: { data: WorkloadStat[] }) {
             </div>
           )}
         </>
+      )}
+
+      {idle.length > 0 && (
+        <div className="space-y-2 border-t pt-4">
+          <h3 className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold">
+            <Moon className="size-3.5" /> No completions this period ({idle.length})
+          </h3>
+          <ul className="flex flex-wrap gap-1.5">
+            {idle.map((w) => (
+              <li
+                key={w.technician_id}
+                className="bg-muted/60 text-foreground/80 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
+                title={`${w.branch_name} · ${w.open_jobs} open`}
+              >
+                {w.technician_name}
+                {w.open_jobs > 0 && <span className="text-muted-foreground tabular">· {w.open_jobs} open</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

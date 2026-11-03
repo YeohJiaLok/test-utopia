@@ -40,7 +40,7 @@ export function FlagCard({
   return (
     <article
       className={cn(
-        "bg-card relative overflow-hidden rounded-xl border p-4 pl-5 shadow-xs before:absolute before:inset-y-0 before:left-0 before:w-1",
+        "bg-card relative overflow-hidden rounded-xl border p-4 pl-5 shadow-xs transition-shadow duration-300 before:absolute before:inset-y-0 before:left-0 before:w-1 hover:shadow-sm",
         flag.resolved ? "before:bg-emerald-500/60" : SEVERITY_EDGE[flag.severity],
         className,
       )}
@@ -53,10 +53,10 @@ export function FlagCard({
           {formatRelative(flag.created_at)}
         </time>
       </div>
-      <h3 className="mt-2 text-sm font-semibold">{flag.title}</h3>
+      <h3 className="mt-2.5 text-sm font-semibold text-balance">{flag.title}</h3>
       <p className="text-muted-foreground mt-1 text-sm text-pretty">{flag.explanation}</p>
       {flag.recommended_action && (
-        <p className="bg-primary/5 mt-3 flex gap-2 rounded-lg px-3 py-2 text-xs">
+        <p className="bg-primary/5 ring-primary/10 mt-3 flex gap-2 rounded-lg px-3 py-2 text-xs leading-relaxed ring-1 ring-inset">
           <Lightbulb className="text-primary mt-px size-3.5 shrink-0" aria-hidden />
           <span>
             <span className="font-medium">Recommended: </span>

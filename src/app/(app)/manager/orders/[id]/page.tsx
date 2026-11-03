@@ -11,6 +11,7 @@ import {
   CreditCard,
   ExternalLink,
   History,
+  Images,
   MapPin,
   MessageCircle,
   Phone,
@@ -21,7 +22,7 @@ import {
 } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getOrderDetail } from "@/lib/data/orders";
-import { PAYMENT_METHOD_LABELS } from "@/lib/workflow";
+import { PAYMENT_METHOD_LABELS, canPerform } from "@/lib/workflow";
 import { formatDateTime, formatMYR, maskPhone } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { FadeIn } from "@/components/motion";
@@ -34,6 +35,7 @@ import { FlagCard } from "@/components/manager/flag-card";
 import { NotificationLog } from "@/components/manager/notification-log";
 import { ResolveFlagDialog } from "@/components/manager/resolve-flag-dialog";
 import { ReviewPanel } from "@/components/manager/review-panel";
+import { MobileDecisionBar } from "@/components/manager/mobile-decision-bar";
 import { getQueueIds } from "../../_lib/queries";
 
 export const metadata: Metadata = { title: "Review order" };
@@ -78,12 +80,25 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
       ? completion.payment_amount - completion.final_amount
       : 0;
 
+  const canReview = canPerform("review", { status: order.status, role: user.role, isAssignedTechnician: false });
+  const highFlags = openFlags.filter((f) => f.severity === "high").length;
+
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", canReview && "pb-20 lg:pb-0")}>
       <FadeIn className="space-y-4">
-        <Link href="/manager/reviews" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs font-medium">
-          <ArrowLeft className="size-3.5" /> Review queue
-        </Link>
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            href="/manager/reviews"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted -ml-2 inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors"
+          >
+            <ArrowLeft className="size-3.5" /> Review queue
+          </Link>
+          {queue.position > 0 && (
+            <span className="text-muted-foreground bg-muted/60 tabular rounded-full px-2.5 py-1 text-[11px] font-medium">
+              {queue.position} of {queue.total} in queue
+            </span>
+          )}
+        </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -104,7 +119,7 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
             </p>
           </div>
         </div>
-        <div className="bg-card rounded-xl border px-2 py-4 sm:px-4">
+        <div className="bg-card rounded-xl border px-2 py-4 shadow-xs sm:px-4">
           <StatusPipeline
             status={order.status}
             timestamps={{
@@ -124,20 +139,20 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
           {(openFlags.length > 0 || resolvedFlags.length > 0) && (
             <section id="ai-flags" className="scroll-mt-24 space-y-3" aria-labelledby="flags-title">
               <div className="flex items-center justify-between gap-2">
-                <h2 id="flags-title" className="flex items-center gap-2 text-sm font-semibold">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-amber-500/12 text-amber-600 dark:text-amber-300">
+                <h2 id="flags-title" className="flex items-center gap-2.5 text-sm font-semibold">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500/12 text-amber-600 ring-1 ring-amber-500/15 ring-inset dark:text-amber-300">
                     <ShieldAlert className="size-4" />
                   </span>
                   AI Supervisor findings
                 </h2>
-                <span className="text-muted-foreground text-xs">
-                  {openFlags.length} open · {resolvedFlags.length} resolved
+                <span className="text-muted-foreground tabular text-xs">
+                  <span className="text-foreground font-medium">{openFlags.length}</span> open · {resolvedFlags.length} resolved
                 </span>
               </div>
               <div className="space-y-3">
                 {openFlags.map((f, i) => (
                   <FadeIn key={f.id} delay={0.05 * i}>
-                    <FlagCard flag={f} action={<ResolveFlagDialog flagId={f.id} title={f.title} />} />
+                    <FlagCard flag={f} action={<ResolveFlagDialog flagId={f.id} title={f.title} className="max-sm:h-10 max-sm:px-3.5" />} />
                   </FadeIn>
                 ))}
                 {resolvedFlags.map((f) => (
@@ -147,8 +162,10 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
             </section>
           )}
           {flags.length === 0 && completion && (
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm">
-              <ShieldCheck className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck className="size-4" />
+              </span>
               <span>
                 <span className="font-medium">No supervisor findings.</span>{" "}
                 <span className="text-muted-foreground">Rule checks and the AI reviewer found nothing unusual.</span>
@@ -158,6 +175,7 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
 
           <ChartCard
             title="Completion report"
+            icon={<ClipboardList />}
             description={
               completion
                 ? `Submitted by ${order.technician?.name ?? "technician"} · ${formatDateTime(completion.completed_at)}`
@@ -184,7 +202,7 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
                 </div>
 
                 <div className="space-y-3">
-                  <dl className="bg-muted/40 divide-y rounded-lg border px-3">
+                  <dl className="bg-muted/40 divide-y rounded-lg border px-3.5">
                     <Row label="Quoted">{formatMYR(completion.quoted_price)}</Row>
                     <Row label="Extra charges">
                       <span className={cn(completion.extra_charges > 0 && "font-medium text-amber-700 dark:text-amber-300")}>
@@ -196,7 +214,7 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
                       <span className="text-base">{formatMYR(completion.final_amount)}</span>
                     </Row>
                   </dl>
-                  <dl className="divide-y rounded-lg border px-3">
+                  <dl className="divide-y rounded-lg border px-3.5">
                     <Row label="Payment">
                       <span className="inline-flex items-center gap-1">
                         <CreditCard className="text-muted-foreground size-3.5" />
@@ -242,6 +260,7 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
 
           <ChartCard
             title="Evidence"
+            icon={<Images />}
             description={`${photos} photo${photos === 1 ? "" : "s"} · ${attachments.filter((a) => a.kind !== "receipt").length} file(s) in total`}
             action={
               photos === 0 && completion ? (
@@ -255,13 +274,13 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
           </ChartCard>
 
           <div className="grid gap-6 xl:grid-cols-2">
-            <ChartCard title="Activity timeline" description="Append-only audit trail from the workflow engine">
+            <ChartCard title="Activity timeline" icon={<History />} description="Append-only audit trail from the workflow engine">
               <OrderTimeline events={events} />
             </ChartCard>
             <ChartCard
               title="WhatsApp notifications"
+              icon={<MessageCircle />}
               description="Messages generated for customer, technician and accounts"
-              action={<MessageCircle className="text-muted-foreground size-4" />}
             >
               <NotificationLog notifications={notifications} />
             </ChartCard>
@@ -269,7 +288,7 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-20">
-          <FadeIn delay={0.1}>
+          <FadeIn delay={0.1} id="review-panel" className="scroll-mt-20">
             <ReviewPanel
               orderId={order.id}
               orderNo={order.order_no}
@@ -283,7 +302,7 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
             />
           </FadeIn>
           <FadeIn delay={0.16}>
-            <section className="bg-card space-y-2.5 rounded-xl border p-4 text-sm">
+            <section className="bg-card space-y-2.5 rounded-xl border p-4 text-sm shadow-xs">
               <h2 className="text-sm font-semibold">Customer & job</h2>
               <p className="flex items-start gap-2">
                 <User className="text-muted-foreground mt-0.5 size-4 shrink-0" />
@@ -327,6 +346,14 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
           </FadeIn>
         </aside>
       </div>
+
+      {canReview && (
+        <MobileDecisionBar
+          targetId="review-panel"
+          highFlags={highFlags}
+          label={openFlags.length ? `Decide · ${openFlags.length} open flag${openFlags.length > 1 ? "s" : ""}` : "Rate & decide on this job"}
+        />
+      )}
     </div>
   );
 }

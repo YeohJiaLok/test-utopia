@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { Banknote, Clock, ClipboardCheck, Play, ShieldAlert, TrendingUp } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { formatMYR, formatNumber, formatRelative } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Stagger, StaggerItem } from "@/components/motion";
@@ -20,12 +21,18 @@ export default async function ReviewQueuePage() {
   const extras = items.filter((i) => i.extra > 0).length;
   const oldest = items[0]?.completedAt ?? null;
 
-  const chips = [
-    { label: "Awaiting review", value: formatNumber(items.length) },
-    { label: "Value awaiting sign-off", value: formatMYR(value) },
-    { label: "With open AI flags", value: formatNumber(flagged), tone: flagged ? "text-amber-700 dark:text-amber-300" : undefined },
-    { label: "Charged above quote", value: formatNumber(extras) },
-    { label: "Oldest completion", value: oldest ? formatRelative(oldest) : "—" },
+  const chips: { label: string; value: string; icon: React.ReactNode; tone?: string; iconTone?: string }[] = [
+    { label: "Awaiting review", value: formatNumber(items.length), icon: <ClipboardCheck /> },
+    { label: "Value awaiting sign-off", value: formatMYR(value), icon: <Banknote /> },
+    {
+      label: "With open AI flags",
+      value: formatNumber(flagged),
+      icon: <ShieldAlert />,
+      tone: flagged ? "text-amber-700 dark:text-amber-300" : undefined,
+      iconTone: flagged ? "bg-amber-500/12 text-amber-600 dark:text-amber-300" : undefined,
+    },
+    { label: "Charged above quote", value: formatNumber(extras), icon: <TrendingUp /> },
+    { label: "Oldest completion", value: oldest ? formatRelative(oldest) : "—", icon: <Clock /> },
   ];
 
   return (
@@ -36,18 +43,35 @@ export default async function ReviewQueuePage() {
         description="Completed jobs awaiting manager sign-off. Check the evidence, rate the work, then approve or send it back for rework."
         actions={
           items[0] ? (
-            <Link href={`/manager/orders/${items[0].id}`} className={buttonVariants()}>
+            <Link
+              href={`/manager/orders/${items[0].id}`}
+              className={buttonVariants({ className: "shadow-brand/25 shadow-sm max-sm:h-11 max-sm:w-full" })}
+            >
               <Play /> Start with oldest
             </Link>
           ) : undefined
         }
       />
 
-      <Stagger className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {chips.map((c) => (
-          <StaggerItem key={c.label} className="bg-card rounded-lg border px-3 py-2.5">
-            <p className="text-muted-foreground text-[11px]">{c.label}</p>
-            <p className={`tabular mt-0.5 truncate text-sm font-semibold ${c.tone ?? ""}`}>{c.value}</p>
+      <Stagger className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 [&>*]:min-w-0">
+        {chips.map((c, i) => (
+          <StaggerItem
+            key={c.label}
+            className={cn(
+              "bg-card flex items-center gap-3 rounded-xl border px-3 py-3 shadow-xs",
+              i === chips.length - 1 && "max-sm:col-span-2",
+            )}
+          >
+            <span
+              aria-hidden
+              className={cn("bg-primary/8 text-primary flex size-8 shrink-0 sm:size-9 items-center justify-center rounded-lg [&_svg]:size-4", c.iconTone)}
+            >
+              {c.icon}
+            </span>
+            <div className="min-w-0">
+              <p className="text-muted-foreground text-[11px] leading-tight font-medium sm:truncate">{c.label}</p>
+              <p className={cn("tabular mt-0.5 truncate text-base font-semibold tracking-tight", c.tone)}>{c.value}</p>
+            </div>
           </StaggerItem>
         ))}
       </Stagger>

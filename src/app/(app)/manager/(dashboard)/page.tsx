@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarClock, CheckCircle2, ClipboardCheck, Receipt, ShieldAlert, Wallet } from "lucide-react";
+import { Activity, Building2, CalendarClock, CheckCircle2, ClipboardCheck, Gauge, PieChart, Receipt, Scale, ShieldAlert, Wallet } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { RANGE_LABELS } from "@/lib/time";
 import { formatDate, formatRelative } from "@/lib/format";
@@ -44,13 +44,23 @@ export default async function ManagerDashboardPage({
           actions={
             user.role === "manager" ? (
               <>
-                <Link href="/manager/flags" className={buttonVariants({ variant: "outline" })}>
+                <Link href="/manager/flags" className={buttonVariants({ variant: "outline", className: "max-sm:h-11 max-sm:flex-1" })}>
                   <ShieldAlert /> AI Supervisor
+                  {stats.openFlags.value > 0 && (
+                    <span className="tabular rounded-full bg-amber-500/15 px-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                      {stats.openFlags.value}
+                    </span>
+                  )}
                 </Link>
-                <Link href="/manager/reviews" className={buttonVariants()}>
+                <Link
+                  href="/manager/reviews"
+                  className={buttonVariants({ className: "shadow-brand/25 shadow-sm max-sm:h-11 max-sm:flex-1" })}
+                >
                   <ClipboardCheck /> Review queue
                   {stats.pendingReviews.value > 0 && (
-                    <span className="bg-primary-foreground/20 tabular rounded px-1 text-[11px]">{stats.pendingReviews.value}</span>
+                    <span className="bg-primary-foreground/20 tabular rounded-full px-1.5 text-[11px] font-semibold">
+                      {stats.pendingReviews.value}
+                    </span>
                   )}
                 </Link>
               </>
@@ -60,13 +70,17 @@ export default async function ManagerDashboardPage({
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <RangeSwitcher options={RANGE_OPTIONS} />
-          <p className="text-muted-foreground text-xs">
-            {formatDate(range.from)} – {formatDate(lastDay)} · deltas {range.compareLabel}
+          <p className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
+            <span className="text-foreground/80 tabular font-medium">
+              {formatDate(range.from)} – {formatDate(lastDay)}
+            </span>
+            <span aria-hidden>·</span>
+            <span>deltas {range.compareLabel}</span>
           </p>
         </div>
 
         <PendingFrame className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6 [&>*]:min-w-0">
             <StatCard index={0} label="Jobs completed" value={stats.jobs.value} icon={<CheckCircle2 />} delta={stats.jobs.delta} hint={range.compareLabel} />
             <StatCard
               index={1}
@@ -115,33 +129,35 @@ export default async function ManagerDashboardPage({
 
           <TechnicianLeaderboard rows={data.technicians} periodLabel={range.label} />
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3 [&>*]:min-w-0">
             <ChartCard
               className="lg:col-span-2"
               title="Daily throughput"
+              icon={<Activity />}
               description={`Completed jobs and revenue per ${data.granularity === "day" ? "day" : "week"} · ${range.label.toLowerCase()}`}
             >
               <ThroughputChart data={data.daily} granularity={data.granularity} />
             </ChartCard>
-            <ChartCard title="Service mix" description="Share of completed work by service type">
+            <ChartCard title="Service mix" icon={<PieChart />} description="Share of completed work by service type">
               <ServiceMixChart data={data.serviceMix} />
             </ChartCard>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3 [&>*]:min-w-0">
             <ChartCard
               className="lg:col-span-2"
               title="Technician load vs team mean"
+              icon={<Gauge />}
               description="Jobs completed per technician; bars 1.5σ above the mean are flagged as overloaded"
             >
               <WorkloadChart data={data.workload} />
             </ChartCard>
-            <ChartCard title="Workload balance" description="Outliers from the team distribution this period">
+            <ChartCard title="Workload balance" icon={<Scale />} description="Outliers from the team distribution this period">
               <WorkloadPanel data={data.workload} />
             </ChartCard>
           </div>
 
-          <ChartCard title="Branch comparison" description="Completed jobs and revenue this period; open jobs are a live count">
+          <ChartCard title="Branch comparison" icon={<Building2 />} description="Completed jobs and revenue this period; open jobs are a live count">
             <BranchChart data={data.branches} />
           </ChartCard>
         </PendingFrame>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Flame, Info, Lightbulb, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Cog, Flame, Info, KeyRound, Lightbulb, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EASE, Stagger, StaggerItem } from "@/components/motion";
 import { formatDate, formatMYR, formatRelative } from "@/lib/format";
@@ -62,8 +62,8 @@ function Delta({ pct }: { pct: number | null }) {
 
 function Metric({ label, value, delta }: { label: string; value: string; delta?: React.ReactNode }) {
   return (
-    <div className="bg-muted/40 rounded-lg px-3 py-2">
-      <p className="text-muted-foreground text-[11px]">{label}</p>
+    <div className="bg-muted/40 ring-foreground/[0.04] h-full rounded-lg px-3 py-2 ring-1 ring-inset">
+      <p className="text-muted-foreground truncate text-[11px]">{label}</p>
       <div className="mt-0.5 flex items-baseline gap-1.5">
         <span className="tabular text-base font-semibold">{value}</span>
         {delta}
@@ -106,7 +106,7 @@ function Briefing({ data }: { data: InsightPayload }) {
             const tone = TONE[h.tone];
             const Icon = tone.icon;
             return (
-              <StaggerItem key={i} className="flex gap-3 rounded-lg border px-3 py-2.5">
+              <StaggerItem key={i} className="bg-card hover:bg-muted/30 flex gap-3 rounded-lg border px-3 py-2.5 transition-colors">
                 <span className={cn("mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md", tone.className)}>
                   <Icon className="size-3.5" />
                 </span>
@@ -203,36 +203,42 @@ export function AiBriefingCard({ className }: { className?: string }) {
         className,
       )}
     >
-      <section className="bg-card relative overflow-hidden rounded-[calc(1rem-1px)] p-5">
+      <section className="bg-card relative overflow-hidden rounded-[calc(1rem-1px)] p-4 sm:p-5">
         <div aria-hidden className="bg-brand/10 pointer-events-none absolute -top-24 -right-20 size-56 rounded-full blur-3xl" />
-        <header className="relative mb-4 flex flex-wrap items-center gap-3">
-          <span className="bg-gradient-brand flex size-8 items-center justify-center rounded-lg text-white shadow-sm shadow-brand/25">
+        <header className="relative mb-4 flex flex-wrap items-start gap-x-3 gap-y-2">
+          <span className="bg-gradient-brand shadow-brand/25 flex size-9 shrink-0 items-center justify-center rounded-xl text-white shadow-md">
             <Sparkles className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-5 font-semibold">
               AI operational briefing
               {data && (
                 <span
                   className={cn(
-                    "rounded px-1.5 py-px text-[10px] font-semibold tracking-wide uppercase",
-                    data.source === "ai" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                    "inline-flex items-center gap-1 rounded-full px-2 py-px text-[10px] font-semibold tracking-wide uppercase",
+                    data.source === "ai" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground ring-border ring-1 ring-inset",
                   )}
                 >
+                  {data.source === "ai" ? <Sparkles className="size-2.5" /> : <Cog className="size-2.5" />}
                   {data.source === "ai" ? "AI" : "Rule-based"}
                 </span>
               )}
             </h2>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground mt-0.5 text-xs">
               {data ? `Week of ${formatDate(data.stats.periodStart)} · this week vs same days last week` : "This week vs last week"}
             </p>
           </div>
-          <div className="text-muted-foreground flex items-center gap-1 text-xs">
-            {data && <span>Generated {formatRelative(data.generatedAt)}</span>}
-            {data && <span aria-hidden>·</span>}
-            <Button variant="ghost" size="xs" onClick={refresh} disabled={refreshing || state.status === "loading"}>
+          <div className="text-muted-foreground flex w-full items-center justify-between gap-2 text-xs sm:w-auto sm:justify-end">
+            {data ? <span>Generated {formatRelative(data.generatedAt)}</span> : <span />}
+            <Button
+              variant="outline"
+              size="sm"
+              className="max-sm:h-10 max-sm:px-3"
+              onClick={refresh}
+              disabled={refreshing || state.status === "loading"}
+            >
               <RefreshCw className={cn(refreshing && "animate-spin")} />
-              {refreshing ? "Generating" : "Refresh"}
+              {refreshing ? "Generating…" : "Refresh"}
             </Button>
           </div>
         </header>
@@ -244,9 +250,17 @@ export function AiBriefingCard({ className }: { className?: string }) {
                 <LoadingState />
               </motion.div>
             ) : state.status === "error" ? (
-              <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-muted-foreground flex items-start gap-2 text-sm">
+              <motion.div
+                key="error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="border-warning/30 bg-warning/[0.06] flex items-start gap-3 rounded-lg border p-3 text-sm"
+              >
                 <AlertTriangle className="text-warning mt-0.5 size-4 shrink-0" />
-                <span>{state.error}</span>
+                <div className="min-w-0">
+                  <p className="font-medium">The briefing could not be generated</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">{state.error}</p>
+                </div>
               </motion.div>
             ) : (
               <motion.div
@@ -257,7 +271,24 @@ export function AiBriefingCard({ className }: { className?: string }) {
                 transition={{ duration: 0.3 }}
               >
                 <Briefing data={data!} />
-                {data!.notice && <p className="text-muted-foreground mt-3 text-xs">{data!.notice}</p>}
+                {data!.notice && (
+                  <p className="bg-muted/40 text-muted-foreground mt-4 flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-xs">
+                    {data!.source === "ai" ? (
+                      <Info className="mt-px size-3.5 shrink-0" aria-hidden />
+                    ) : (
+                      <KeyRound className="mt-px size-3.5 shrink-0" aria-hidden />
+                    )}
+                    <span>
+                      {data!.notice}
+                      {data!.source !== "ai" && (
+                        <span className="text-muted-foreground/80">
+                          {" "}
+                          Figures and recommendations are computed deterministically from live data.
+                        </span>
+                      )}
+                    </span>
+                  </p>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, Camera, ClipboardCheck, Clock, Paperclip, RotateCcw, ShieldAlert, User, Wrench } from "lucide-react";
+import { ArrowRight, Camera, ClipboardCheck, Clock, Filter, Paperclip, RotateCcw, ShieldAlert, User, Wrench } from "lucide-react";
 import { EASE } from "@/components/motion";
 import { EmptyState } from "@/components/shared/empty-state";
 import { NativeSelect } from "@/components/shared/form-field";
@@ -40,6 +40,7 @@ export function ReviewQueue({ items, now }: { items: QueueItem[]; now: number })
     return (
       <EmptyState
         icon={ClipboardCheck}
+        className="bg-card py-16"
         title="Review queue is clear"
         description="Every completed job has been reviewed. New completions will appear here automatically."
       />
@@ -48,13 +49,14 @@ export function ReviewQueue({ items, now }: { items: QueueItem[]; now: number })
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <label htmlFor="queue-tech" className="text-muted-foreground shrink-0 text-xs font-medium">
-            Technician
+      <div className="bg-card flex flex-col gap-2 rounded-xl border p-2.5 shadow-xs sm:flex-row sm:items-center sm:justify-between sm:pl-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <label htmlFor="queue-tech" className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs font-medium">
+            <Filter className="size-3.5" aria-hidden />
+            <span className="max-sm:sr-only">Technician</span>
           </label>
-          <div className="w-56 max-w-full">
-            <NativeSelect id="queue-tech" value={tech} onChange={(e) => setTech(e.target.value)}>
+          <div className="min-w-0 flex-1 sm:w-60 sm:flex-none">
+            <NativeSelect id="queue-tech" value={tech} onChange={(e) => setTech(e.target.value)} className="max-sm:h-11">
               <option value="all">All technicians ({items.length})</option>
               {technicians.map(([id, t]) => (
                 <option key={id} value={id}>
@@ -64,8 +66,9 @@ export function ReviewQueue({ items, now }: { items: QueueItem[]; now: number })
             </NativeSelect>
           </div>
         </div>
-        <p className="text-muted-foreground text-xs" aria-live="polite">
-          Showing {visible.length} of {items.length} · oldest completion first
+        <p className="text-muted-foreground px-1 text-xs" aria-live="polite">
+          Showing <span className="text-foreground tabular font-medium">{visible.length}</span> of {items.length} · oldest
+          completion first
         </p>
       </div>
 
@@ -86,14 +89,18 @@ export function ReviewQueue({ items, now }: { items: QueueItem[]; now: number })
                 <Link
                   href={`/manager/orders/${o.id}`}
                   className={cn(
-                    "group bg-card focus-visible:ring-ring/50 flex h-full flex-col rounded-xl border p-4 shadow-xs transition-all outline-none hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-3",
-                    o.topSeverity === "high" && "border-red-500/30",
+                    "group bg-card focus-visible:ring-ring/50 hover:border-primary/30 relative flex h-full flex-col overflow-hidden rounded-xl border p-4 pl-5 shadow-xs transition-all outline-none hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-3",
+                    "before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-transparent",
+                    o.topSeverity === "high" && "border-red-500/25 before:bg-red-500",
+                    o.topSeverity === "medium" && "before:bg-amber-500",
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-mono text-xs font-semibold tracking-tight">{o.orderNo}</p>
-                      <p className="mt-0.5 truncate text-sm font-medium">{o.customerName}</p>
+                      <p className="text-muted-foreground group-hover:text-primary font-mono text-xs font-semibold tracking-tight transition-colors">
+                        {o.orderNo}
+                      </p>
+                      <p className="mt-0.5 truncate text-sm font-semibold">{o.customerName}</p>
                     </div>
                     <span
                       className={cn(
@@ -128,7 +135,7 @@ export function ReviewQueue({ items, now }: { items: QueueItem[]; now: number })
                     </div>
                   </dl>
 
-                  <div className="bg-muted/50 mt-3 flex items-end justify-between gap-2 rounded-lg px-3 py-2">
+                  <div className="bg-muted/50 ring-foreground/[0.04] mt-3 flex items-end justify-between gap-2 rounded-lg px-3 py-2 ring-1 ring-inset">
                     <div>
                       <p className="text-muted-foreground text-[11px]">Final</p>
                       <p className="tabular text-base font-semibold">{formatMYR(o.final)}</p>
@@ -177,9 +184,13 @@ export function ReviewQueue({ items, now }: { items: QueueItem[]; now: number })
                     ) : null}
                   </div>
 
-                  <span className="text-primary mt-auto flex items-center gap-1 pt-3 text-xs font-medium">
-                    Review job
-                    <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                  <span className="mt-auto pt-3">
+                    <span className="text-primary flex items-center justify-between gap-1 border-t pt-3 text-xs font-medium">
+                      Review job
+                      <span className="bg-primary/8 group-hover:bg-primary group-hover:text-primary-foreground flex size-7 items-center justify-center rounded-full transition-colors">
+                        <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                      </span>
+                    </span>
                   </span>
                 </Link>
               </motion.li>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { BranchRow } from "@/app/(app)/manager/_lib/queries";
 import { formatMYR, formatNumber } from "@/lib/format";
-import { AXIS_TICK, BAR_CURSOR, GRID_STROKE, MiniToggle, SrTable, TooltipCard, compactMYR } from "./chart-kit";
+import { AXIS_TICK, BAR_CURSOR, CategoryTick, GRID_STROKE, MiniToggle, SrTable, TooltipCard, compactMYR } from "./chart-kit";
 
 type Metric = "jobs" | "revenue" | "openJobs";
 const COLOR = "var(--chart-1)";
@@ -17,9 +17,10 @@ export function BranchChart({ data }: { data: BranchRow[] }) {
   const fmt = (n: number) => (metric === "revenue" ? formatMYR(n, { compact: n >= 10_000 }) : formatNumber(n));
 
   return (
-    <div className="space-y-3">
+    <div className="relative space-y-3">
       <div className="flex justify-end">
         <MiniToggle
+          className="max-sm:w-full"
           label="Branch metric"
           value={metric}
           onChange={setMetric}
@@ -31,7 +32,7 @@ export function BranchChart({ data }: { data: BranchRow[] }) {
         />
       </div>
       {rows.length === 0 ? (
-        <p className="text-muted-foreground py-10 text-center text-sm">No branches configured.</p>
+        <p className="text-muted-foreground rounded-lg border border-dashed py-10 text-center text-sm">No branches configured.</p>
       ) : (
         <div style={{ height: Math.max(140, rows.length * 40 + 24) }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -45,7 +46,7 @@ export function BranchChart({ data }: { data: BranchRow[] }) {
                 allowDecimals={false}
                 tickFormatter={metric === "revenue" ? compactMYR : undefined}
               />
-              <YAxis type="category" dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} width={96} />
+              <YAxis type="category" dataKey="name" tick={<CategoryTick maxChars={16} />} axisLine={false} tickLine={false} width={104} interval={0} />
               <Tooltip
                 cursor={BAR_CURSOR}
                 content={({ active, payload }) => {

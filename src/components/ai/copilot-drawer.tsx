@@ -86,18 +86,19 @@ export function CopilotDrawer() {
             transition={{ type: "spring", stiffness: 380, damping: 32 }}
             style={{ transformOrigin: "bottom right" }}
             className={cn(
-              "bg-background fixed inset-0 z-50 flex flex-col overflow-hidden",
-              "sm:inset-auto sm:right-6 sm:bottom-24 sm:h-[min(680px,calc(100dvh-8rem))] sm:w-[400px] sm:rounded-2xl sm:border sm:shadow-2xl sm:shadow-black/20",
+              "bg-ai-surface fixed inset-0 z-50 flex flex-col overflow-hidden",
+              "sm:inset-auto sm:right-6 sm:bottom-24 sm:h-[min(680px,calc(100dvh-8rem))] sm:w-[400px] sm:rounded-2xl sm:border sm:shadow-[0_24px_70px_-12px_rgb(0_0_0/0.35)]",
+              "dark:sm:border-white/12 dark:sm:shadow-[0_28px_90px_-10px_rgb(0_0_0/0.85),0_0_0_1px_rgb(255_255_255/0.04)]",
               "lg:right-8 lg:bottom-28",
             )}
           >
             {/* Header */}
-            <header className="bg-gradient-brand relative shrink-0 overflow-hidden px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 text-white">
+            <header className="bg-gradient-ai relative shrink-0 overflow-hidden px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 text-white">
               <span aria-hidden className="absolute -top-16 -right-10 size-40 rounded-full bg-white/10 blur-2xl" />
               <div className="relative flex items-center gap-3">
                 <span className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur">
                   <Sparkles className="size-5" />
-                  <span className="ring-primary absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-emerald-400 ring-2" aria-hidden />
+                  <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-emerald-400 ring-2 ring-[var(--ai-1)]" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-[15px] leading-tight font-semibold">Sejuk Ops AI</h2>
@@ -136,8 +137,8 @@ export function CopilotDrawer() {
             </header>
 
             {/* Scope */}
-            <div className="bg-muted/50 text-muted-foreground flex shrink-0 items-center gap-2 border-b px-4 py-2 text-[11px]">
-              <ShieldCheck className="text-primary size-3.5 shrink-0" />
+            <div className="text-muted-foreground flex shrink-0 items-center gap-2 border-b bg-[color-mix(in_oklch,var(--ai-2)_6%,transparent)] px-4 py-2 text-[11px] dark:border-white/8">
+              <ShieldCheck className="size-3.5 shrink-0 text-[var(--ai-2)] dark:text-violet-300" />
               <span className="min-w-0">
                 Operations only: jobs, technicians, schedules, workload, revenue. Read-only, and every question is logged.
               </span>
@@ -178,9 +179,9 @@ export function CopilotDrawer() {
           whileTap={{ scale: 0.94 }}
           aria-label={open ? "Close Sejuk Ops AI" : "Open Sejuk Ops AI"}
           aria-expanded={open}
-          className="bg-gradient-brand shadow-brand/40 relative flex size-14 items-center justify-center rounded-full text-white shadow-xl ring-4 ring-white/60 dark:ring-white/10"
+          className="bg-gradient-ai relative flex size-14 items-center justify-center rounded-full text-white shadow-xl shadow-[color-mix(in_oklch,var(--ai-2)_45%,transparent)] ring-4 ring-white/70 dark:ring-white/10"
         >
-          {!open && <span aria-hidden className="bg-brand/40 absolute inset-0 -z-10 animate-ping rounded-full [animation-duration:2.8s]" />}
+          {!open && <span aria-hidden className="absolute inset-0 -z-10 animate-ping rounded-full bg-[color-mix(in_oklch,var(--ai-2)_40%,transparent)] [animation-duration:2.8s]" />}
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
               key={open ? "close" : "open"}

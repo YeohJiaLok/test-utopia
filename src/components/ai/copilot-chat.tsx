@@ -39,8 +39,8 @@ function SetupNotice({ message }: { message?: string }) {
 function AssistantAvatar({ busy }: { busy?: boolean }) {
   return (
     <span className="relative mt-0.5 flex size-7 shrink-0 items-center justify-center">
-      {busy && <span className="bg-brand/30 absolute inset-0 animate-ping rounded-lg" />}
-      <span className="bg-gradient-brand relative flex size-7 items-center justify-center rounded-lg text-white shadow-sm shadow-brand/25">
+      {busy && <span className="absolute inset-0 animate-ping rounded-lg bg-[color-mix(in_oklch,var(--ai-2)_30%,transparent)]" />}
+      <span className="bg-gradient-ai relative flex size-7 items-center justify-center rounded-lg text-white shadow-sm">
         <Sparkles className="size-3.5" />
       </span>
     </span>
@@ -185,8 +185,8 @@ function EmptyIntro({ onAsk, compact }: { onAsk: (q: string) => void; compact: b
     <div className={cn("flex h-full flex-col justify-center", compact ? "py-6" : "py-10")}>
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: EASE }} className="text-center">
         <div className="relative mx-auto size-12">
-          <span aria-hidden className="bg-brand/25 absolute -inset-3 rounded-3xl blur-xl" />
-          <div className="bg-gradient-brand shadow-brand/25 relative flex size-12 items-center justify-center rounded-2xl text-white shadow-lg">
+          <span aria-hidden className="absolute -inset-3 rounded-3xl bg-[color-mix(in_oklch,var(--ai-2)_25%,transparent)] blur-xl" />
+          <div className="bg-gradient-ai relative flex size-12 items-center justify-center rounded-2xl text-white shadow-lg">
             <Sparkles className="size-5" />
           </div>
         </div>
@@ -208,7 +208,7 @@ function EmptyIntro({ onAsk, compact }: { onAsk: (q: string) => void; compact: b
             onClick={() => onAsk(q)}
             variants={{ hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE } } }}
             whileHover={{ y: -1 }}
-            className="group bg-card hover:border-primary/40 hover:bg-primary/[0.03] focus-visible:ring-ring/50 flex min-h-11 items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-left text-sm shadow-xs transition-colors outline-none focus-visible:ring-3"
+            className="group bg-card hover:bg-primary/[0.03] focus-visible:ring-ring/50 flex min-h-11 hover:border-[color-mix(in_oklch,var(--ai-2)_45%,transparent)] dark:bg-white/[0.035] dark:border-white/10 items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-left text-sm shadow-xs transition-colors outline-none focus-visible:ring-3"
           >
             <Sparkles className="text-muted-foreground group-hover:text-primary mt-0.5 size-3.5 shrink-0 transition-colors" aria-hidden />
             <span>{q}</span>
@@ -263,7 +263,7 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
                   >
                     {turn.role === "user" ? (
                       <div className="flex justify-end">
-                        <div className="bg-primary text-primary-foreground max-w-[85%] rounded-2xl rounded-br-md px-3.5 py-2 text-sm whitespace-pre-wrap shadow-sm">
+                        <div className="bg-ai max-w-[85%] rounded-2xl rounded-br-md px-3.5 py-2 text-sm whitespace-pre-wrap text-white shadow-sm">
                           {turn.content}
                         </div>
                       </div>
@@ -278,7 +278,7 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
         </div>
       </div>
 
-      <div className={cn("bg-background/80 border-t backdrop-blur", compact ? "p-3" : "p-3 sm:p-4")}>
+      <div className={cn("border-t dark:border-white/8", compact ? "p-3" : "bg-background/80 p-3 backdrop-blur sm:p-4")}>
         <form
           className={cn("mx-auto w-full", !compact && "max-w-3xl")}
           onSubmit={(e) => {
@@ -286,7 +286,7 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
             submit();
           }}
         >
-          <div className="bg-card focus-within:border-ring focus-within:ring-ring/30 relative flex items-end gap-2 rounded-xl border p-1.5 shadow-sm transition-shadow focus-within:ring-3">
+          <div className="bg-card relative flex items-end gap-2 rounded-xl border p-1.5 shadow-sm transition-shadow focus-within:border-[color-mix(in_oklch,var(--ai-2)_60%,transparent)] focus-within:ring-3 focus-within:ring-[color-mix(in_oklch,var(--ai-2)_20%,transparent)] dark:border-white/12 dark:bg-white/[0.04]">
             {turns.length > 0 && (
               <Button
                 type="button"
@@ -326,7 +326,7 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
                 size="icon"
                 disabled={!draft.trim() || tooLong}
                 aria-label="Send"
-                className="bg-gradient-brand shadow-brand/25 mb-0.5 size-10 shrink-0 text-white shadow-sm sm:size-8"
+                className="bg-gradient-ai mb-0.5 size-10 shrink-0 text-white shadow-sm disabled:opacity-40 sm:size-8"
               >
                 <ArrowUp />
               </Button>

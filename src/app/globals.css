@@ -66,6 +66,15 @@
 
 /* Light — slate neutrals with a cool "sejuk" azure/cyan brand */
 :root {
+  --ai-1: oklch(0.46 0.2 276);
+  --ai-2: oklch(0.5 0.23 298);
+  --ai-3: oklch(0.56 0.22 330);
+  --ai-surface: oklch(1 0 0);
+}
+.dark {
+  --ai-surface: oklch(0.235 0.028 280);
+}
+:root {
   --radius: 0.7rem;
   --background: oklch(0.985 0.003 247);
   --foreground: oklch(0.2 0.02 255);
@@ -254,6 +263,18 @@
   }
   .bg-gradient-brand {
     background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  }
+  /* Sejuk Ops AI has its own identity, the same in every portal and both themes: a deep
+     indigo → violet → magenta gradient that keeps white text readable, on a raised surface
+     that stands apart from the page in dark mode. */
+  .bg-gradient-ai {
+    background: linear-gradient(135deg, var(--ai-1), var(--ai-2) 55%, var(--ai-3));
+  }
+  .bg-ai {
+    background-color: var(--ai-1);
+  }
+  .bg-ai-surface {
+    background-color: var(--ai-surface);
   }
   .bg-grid {
     background-image:

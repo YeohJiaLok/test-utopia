@@ -7,7 +7,7 @@
 import { z } from "zod";
 import { MAX_TOOL_ROWS } from "@/lib/ai/catalogue";
 
-export const ORDER_STATUSES = ["new", "assigned", "in_progress", "job_done", "reviewed", "closed"] as const;
+export const ORDER_STATUSES = ["new", "assigned", "in_progress", "job_done", "reviewed", "closed", "cancelled"] as const;
 export const COMPLETED_STATUSES = ["job_done", "reviewed", "closed"] as const;
 export const DATE_FIELDS = ["completed_at", "created_at", "scheduled_at"] as const;
 export const GROUP_BY = ["technician", "status", "service", "branch", "day"] as const;
@@ -43,7 +43,7 @@ export const listTechniciansSchema = z.object({
 
 const jobFilters = {
   technician: name("Technician name, partial and case-insensitive (e.g. 'Ali').").optional(),
-  status: z.array(z.enum(ORDER_STATUSES)).max(6).optional().describe("Only include these order statuses."),
+  status: z.array(z.enum(ORDER_STATUSES)).max(7).optional().describe("Only include these order statuses."),
   service: name("Service type code or name, partial match (e.g. 'chemical wash').").optional(),
   branch: name("Branch code or name, partial match.").optional(),
   date_field: z

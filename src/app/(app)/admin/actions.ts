@@ -6,7 +6,15 @@ import { createClient } from "@/lib/supabase/server";
 import { ORDER_SELECT } from "@/lib/data/orders";
 import { workflowErrorMessage } from "@/lib/workflow";
 import type { OrderStatus } from "@/lib/types";
-import { formatMyMobile, orderFormSchema, rescheduleSchema, type OrderFormValues, type RescheduleValues } from "@/components/admin/order-schema";
+import {
+  cancelOrderSchema,
+  formatMyMobile,
+  orderFormSchema,
+  rescheduleSchema,
+  type CancelOrderValues,
+  type OrderFormValues,
+  type RescheduleValues,
+} from "@/components/admin/order-schema";
 import { fromMytInputValue } from "@/components/admin/datetime";
 
 export type ActionResult<T = undefined> =
@@ -166,6 +174,29 @@ export async function rescheduleOrderAction(orderId: string, values: RescheduleV
 }
 
 /** Close a reviewed order (admin or manager, enforced again by `close_job`). */
+/**
+ * Cancels an order before the work is done, with a reason. The database checks role and
+ * status, records it in the audit chain and notifies the technician and customer.
+ */
+export async function cancelOrderAction(orderId: string, values: CancelOrderValues): Promise<ActionResult> {
+  await requireUser(["admin"]);
+  const parsed = cancelOrderSchema.safeParse(values);
+  if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields", fieldErrors: flattenIssues(parsed.error.issues) };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_order", {
+    p_order_id: orderId,
+    p_reason: parsed.data.reason,
+    p_note: parsed.data.note || null,
+  });
+  if (error) return { ok: false, error: workflowErrorMessage(error) };
+
+  revalidateOrderViews(orderId);
+  revalidatePath("/manager");
+  revalidatePath("/tech");
+  return { ok: true };
+}
+
 export async function closeJobAction(orderId: string): Promise<ActionResult> {
   await requireUser(["admin", "manager"]);
   const supabase = await createClient();

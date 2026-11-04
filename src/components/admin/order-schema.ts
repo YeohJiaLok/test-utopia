@@ -52,7 +52,11 @@ export const orderFormSchema = z.object({
     .trim()
     .min(1, "Enter the quoted price")
     .refine((v) => PRICE.test(v), "Enter an amount like 150 or 150.00"),
-  technicianId: z.string().refine((v) => v === "" || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v), "Choose a valid technician"),
+  // Every order is dispatched on creation (also enforced by create_order() in the database).
+  technicianId: z
+    .string()
+    .min(1, "Assign a technician")
+    .refine((v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v), "Choose a valid technician"),
   scheduledAt: z
     .string()
     .refine((v) => v === "" || isLocalInputValue(v), "Enter a valid date and time")
@@ -90,3 +94,12 @@ export const rescheduleSchema = z.object({
 });
 
 export type RescheduleValues = z.infer<typeof rescheduleSchema>;
+
+export const cancelOrderSchema = z
+  .object({
+    reason: z.enum(["customer_request", "duplicate", "unreachable", "out_of_area", "other"], { error: "Choose a reason" }),
+    note: z.string().trim().max(500, "Keep the note under 500 characters"),
+  })
+  .refine((v) => v.reason !== "other" || v.note.length >= 5, { path: ["note"], message: "Describe the reason (min 5 characters)" });
+
+export type CancelOrderValues = z.infer<typeof cancelOrderSchema>;

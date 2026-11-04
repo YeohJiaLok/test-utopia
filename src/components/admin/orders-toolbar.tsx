@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { Columns3, List, Loader2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/shared/form-field";
-import { ORDER_STATUSES, STATUS_META } from "@/lib/workflow";
+import { ALL_STATUSES, STATUS_META } from "@/lib/workflow";
 import type { OrderStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ordersHref, type OrderFilters } from "./orders-url";
@@ -58,7 +58,7 @@ export function OrdersToolbar({
   }, [query, filters, router]);
 
   const hasFilters = !!(filters.q || filters.tech || filters.branch);
-  const tabs: (OrderStatus | "all")[] = ["all", ...ORDER_STATUSES];
+  const tabs: (OrderStatus | "all")[] = ["all", ...ALL_STATUSES];
 
   return (
     <div className="space-y-3">

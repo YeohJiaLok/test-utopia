@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { ORDER_SELECT, normalizeOrder } from "@/lib/data/orders";
-import { ORDER_STATUSES } from "@/lib/workflow";
+import { ALL_STATUSES, ORDER_STATUSES } from "@/lib/workflow";
 import { getRange } from "@/lib/time";
 import type { OrderStatus, OrderWithRelations, TechnicianKpi } from "@/lib/types";
 import type { OrderFilters } from "@/components/admin/orders-url";
@@ -78,7 +78,7 @@ export async function getOrderBoard(f: OrderFilters) {
 }
 
 async function getStatusTabCounts(supabase: Supabase, f: OrderFilters) {
-  const keys: (OrderStatus | "all")[] = ["all", ...ORDER_STATUSES];
+  const keys: (OrderStatus | "all")[] = ["all", ...ALL_STATUSES];
   const results = await Promise.all(
     keys.map(async (k) => {
       const { count } = await ordersQuery(supabase, "id", f, k, { count: "exact", head: true });
@@ -122,7 +122,7 @@ export async function getOverview() {
   ]);
 
   const day = ((daily.data ?? []) as { jobs_created: number; jobs_completed: number; revenue: number }[])[0];
-  const counts = Object.fromEntries(ORDER_STATUSES.map((s) => [s, 0])) as Record<OrderStatus, number>;
+  const counts = Object.fromEntries(ALL_STATUSES.map((s) => [s, 0])) as Record<OrderStatus, number>;
   for (const row of (statusCounts.data ?? []) as { status: OrderStatus; total: number }[]) {
     counts[row.status] = Number(row.total);
   }

@@ -5,7 +5,10 @@ import type { AppRole, OrderStatus } from "@/lib/types";
  * (supabase/migrations/*_workflow.sql). The DB is the source of truth; this
  * drives which actions the UI offers.
  */
+/** The main lifecycle, in order (the status pipeline). Cancelled sits beside it. */
 export const ORDER_STATUSES: OrderStatus[] = ["new", "assigned", "in_progress", "job_done", "reviewed", "closed"];
+/** Every status, for filters and counts. */
+export const ALL_STATUSES: OrderStatus[] = [...ORDER_STATUSES, "cancelled"];
 
 export const STATUS_META: Record<
   OrderStatus,
@@ -17,6 +20,7 @@ export const STATUS_META: Record<
   job_done: { label: "Job Done", short: "Done", description: "Completed, awaiting manager review", tone: "violet" },
   reviewed: { label: "Reviewed", short: "Reviewed", description: "Approved by manager", tone: "teal" },
   closed: { label: "Closed", short: "Closed", description: "Finalised and archived", tone: "green" },
+  cancelled: { label: "Cancelled", short: "Cancelled", description: "Cancelled before the work was done", tone: "red" },
 };
 
 export type StatusTone = "slate" | "blue" | "amber" | "violet" | "teal" | "green" | "red";
@@ -29,7 +33,8 @@ export type WorkflowAction =
   | "review"
   | "rework"
   | "close"
-  | "reschedule";
+  | "reschedule"
+  | "cancel";
 
 interface TransitionRule {
   action: WorkflowAction;
@@ -49,6 +54,7 @@ export const TRANSITIONS: TransitionRule[] = [
   { action: "rework", from: ["job_done"], to: "in_progress", roles: ["manager"] },
   { action: "close", from: ["reviewed"], to: "closed", roles: ["manager", "admin"] },
   { action: "reschedule", from: ["new", "assigned", "in_progress"], to: null, roles: ["admin", "technician"], ownerOnly: true },
+  { action: "cancel", from: ["new", "assigned", "in_progress"], to: "cancelled", roles: ["admin"] },
 ];
 
 export function canPerform(
@@ -84,7 +90,19 @@ export const EVENT_LABELS: Record<string, string> = {
   rework_requested: "Sent back for rework",
   job_closed: "Order closed",
   job_rescheduled: "Rescheduled",
+  order_cancelled: "Order cancelled",
 };
+
+/** Mirrors public.cancel_reason_label() in the database. */
+export const CANCEL_REASONS = [
+  { value: "customer_request", label: "Customer cancelled" },
+  { value: "duplicate", label: "Duplicate order" },
+  { value: "unreachable", label: "Customer unreachable" },
+  { value: "out_of_area", label: "Outside service area" },
+  { value: "other", label: "Other" },
+] as const;
+export type CancelReason = (typeof CANCEL_REASONS)[number]["value"];
+export const CANCEL_REASON_LABELS: Record<string, string> = Object.fromEntries(CANCEL_REASONS.map((r) => [r.value, r.label]));
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   cash: "Cash",

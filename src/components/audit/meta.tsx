@@ -10,6 +10,7 @@ import {
   Lock,
   Play,
   RotateCcw,
+  XCircle,
   ScrollText,
   ShieldAlert,
   ShieldCheck,
@@ -47,6 +48,7 @@ const EVENT_META: Record<string, ActionMeta> = {
   rework_requested: { icon: RotateCcw, tone: "red" },
   job_closed: { icon: Lock, tone: "slate" },
   job_rescheduled: { icon: CalendarClock, tone: "amber" },
+  order_cancelled: { icon: XCircle, tone: "red" },
 };
 
 const AI_META: Record<string, ActionMeta> = {
@@ -84,6 +86,7 @@ export const EVENT_SOURCE: Record<string, string> = {
   rework_requested: "review_job()",
   job_closed: "close_job()",
   job_rescheduled: "reschedule_order()",
+  order_cancelled: "cancel_order()",
 };
 
 export function ActionIcon({ tab, action, className }: { tab: AuditTab; action: string; className?: string }) {

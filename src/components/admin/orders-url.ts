@@ -1,4 +1,4 @@
-import { ORDER_STATUSES } from "@/lib/workflow";
+import { ALL_STATUSES } from "@/lib/workflow";
 import type { OrderStatus } from "@/lib/types";
 
 /** URL-backed filter state for /admin/orders (server-rendered, shareable links). */
@@ -23,7 +23,7 @@ export function parseOrderFilters(sp: SearchParams): OrderFilters {
   const branch = first(sp.branch);
   const page = Number.parseInt(first(sp.page), 10);
   return {
-    status: (ORDER_STATUSES as string[]).includes(status) ? (status as OrderStatus) : "all",
+    status: (ALL_STATUSES as string[]).includes(status) ? (status as OrderStatus) : "all",
     q: first(sp.q).trim().slice(0, 80),
     tech: tech === "none" || /^[0-9a-f-]{36}$/i.test(tech) ? tech : "",
     branch: /^\d+$/.test(branch) ? branch : "",

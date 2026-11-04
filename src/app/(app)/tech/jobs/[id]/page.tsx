@@ -108,7 +108,12 @@ export default async function TechJobPage({ params }: { params: Promise<{ id: st
                     </span>
                   )}
                 </div>
-                <StatusPipeline status={order.status} compact className="mt-5" />
+                <StatusPipeline
+                  status={order.status}
+                  compact
+                  className="mt-5"
+                  cancellation={{ at: order.cancelled_at, reason: order.cancel_reason, note: order.cancel_note }}
+                />
               </div>
             </section>
           </StaggerItem>

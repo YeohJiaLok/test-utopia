@@ -130,6 +130,12 @@ export default async function ReviewWorkspacePage({ params }: { params: Promise<
               reviewed: order.reviewed_at,
               closed: order.closed_at,
             }}
+            cancellation={{
+              at: order.cancelled_at,
+              reason: order.cancel_reason,
+              note: order.cancel_note,
+              by: events.find((e) => e.action === "order_cancelled")?.actor_name,
+            }}
           />
         </div>
       </FadeIn>

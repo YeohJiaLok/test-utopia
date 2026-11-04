@@ -1,9 +1,9 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarClock, Loader2, Lock, UserCheck, UserCog } from "lucide-react";
+import { BellRing, CalendarClock, Loader2, Lock, UserCheck, UserCog, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +22,10 @@ import { FormField } from "@/components/shared/form-field";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { TechnicianWithLoad } from "@/lib/data/reference";
-import { assignTechnicianAction, closeJobAction, rescheduleOrderAction } from "@/app/(app)/admin/actions";
+import { assignTechnicianAction, cancelOrderAction, closeJobAction, rescheduleOrderAction } from "@/app/(app)/admin/actions";
+import { CANCEL_REASONS } from "@/lib/workflow";
 import { fromMytInputValue, toMytInputValue } from "./datetime";
-import { rescheduleSchema, type RescheduleValues } from "./order-schema";
+import { cancelOrderSchema, rescheduleSchema, type CancelOrderValues, type RescheduleValues } from "./order-schema";
 import { TechnicianList, recommendTechnician } from "./technician-picker";
 
 // ------------------------------------------------------------------ assign --
@@ -215,6 +216,138 @@ export function CloseJobButton({ orderId, orderNo, triggerClassName }: { orderId
             Close order
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ------------------------------------------------------------------ cancel --
+
+export function CancelOrderDialog({
+  orderId,
+  orderNo,
+  technicianName,
+  triggerClassName,
+}: {
+  orderId: string;
+  orderNo: string;
+  technicianName: string | null;
+  triggerClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ids = useId();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<CancelOrderValues>({
+    resolver: zodResolver(cancelOrderSchema),
+    defaultValues: { reason: undefined, note: "" },
+  });
+  const reason = useWatch({ control, name: "reason" });
+
+  const onSubmit = handleSubmit(async (v) => {
+    const res = await cancelOrderAction(orderId, v);
+    if (!res.ok) {
+      for (const [name, message] of Object.entries(res.fieldErrors ?? {})) {
+        if (name === "reason" || name === "note") setError(name, { message });
+      }
+      toast.error("Couldn't cancel the order", { description: res.error });
+      return;
+    }
+    toast.success(`${orderNo} cancelled`, {
+      description: technicianName
+        ? `${technicianName} and the customer have been notified. Messages are in the WhatsApp outbox.`
+        : "The customer has been notified. The message is in the WhatsApp outbox.",
+    });
+    setOpen(false);
+    reset();
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) reset();
+      }}
+    >
+      <DialogTrigger
+        render={<Button variant="outline" size="sm" className={cn("text-destructive hover:text-destructive h-8", triggerClassName)} />}
+      >
+        <XCircle /> Cancel order
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <form onSubmit={onSubmit} noValidate className="grid gap-4">
+          <DialogHeader>
+            <DialogTitle>Cancel {orderNo}?</DialogTitle>
+            <DialogDescription>
+              The order is kept for history and can&apos;t be reopened. To serve the customer later, create a new order.
+            </DialogDescription>
+          </DialogHeader>
+
+          <fieldset className="grid gap-2">
+            <legend className="mb-2 text-sm font-medium">
+              Reason <span className="text-destructive">*</span>
+            </legend>
+            <div className="grid gap-1.5" role="radiogroup" aria-invalid={!!errors.reason}>
+              {CANCEL_REASONS.map((r) => (
+                <label
+                  key={r.value}
+                  className={cn(
+                    "hover:bg-muted/50 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors sm:min-h-9",
+                    reason === r.value && "border-destructive/50 bg-destructive/5",
+                  )}
+                >
+                  <input type="radio" value={r.value} className="accent-destructive size-4" {...register("reason")} />
+                  {r.label}
+                </label>
+              ))}
+            </div>
+            {errors.reason && <p className="text-destructive text-xs">{errors.reason.message}</p>}
+          </fieldset>
+
+          <FormField
+            label="Note"
+            htmlFor={`${ids}-note`}
+            required={reason === "other"}
+            error={errors.note?.message}
+            hint="Recorded in the audit trail."
+          >
+            <Textarea
+              id={`${ids}-note`}
+              rows={2}
+              placeholder={reason === "other" ? "What happened?" : "Optional, e.g. customer will call back next month"}
+              aria-invalid={!!errors.note}
+              {...register("note")}
+            />
+          </FormField>
+
+          <div className="bg-muted/50 text-muted-foreground flex gap-2.5 rounded-lg px-3 py-2.5 text-xs">
+            <BellRing className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              {technicianName ? (
+                <>
+                  <span className="text-foreground font-medium">{technicianName}</span> gets a WhatsApp and in-app alert not to go
+                  to site, and the customer gets a cancellation notice.
+                </>
+              ) : (
+                "The customer gets a cancellation notice on WhatsApp."
+              )}
+            </span>
+          </div>
+
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>Keep order</DialogClose>
+            <Button type="submit" variant="destructive" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="animate-spin" /> : <XCircle />}
+              Cancel order
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

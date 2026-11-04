@@ -11,6 +11,7 @@ import {
   RotateCcw,
   UserCheck,
   UserCog,
+  XCircle,
   type LucideIcon,
 } from "lucide-react";
 import { EASE } from "@/components/motion";
@@ -28,6 +29,7 @@ const ICONS: Record<string, { icon: LucideIcon; tone: string }> = {
   job_reviewed: { icon: ClipboardCheck, tone: "bg-teal-500/10 text-teal-600 dark:text-teal-300" },
   rework_requested: { icon: RotateCcw, tone: "bg-red-500/10 text-red-600 dark:text-red-300" },
   job_closed: { icon: Lock, tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300" },
+  order_cancelled: { icon: XCircle, tone: "bg-red-500/10 text-red-600 dark:text-red-300" },
   job_rescheduled: { icon: CalendarClock, tone: "bg-orange-500/10 text-orange-600 dark:text-orange-300" },
 };
 
@@ -52,6 +54,8 @@ function describe(e: OrderEvent): string | null {
       return [p.to ? `New slot ${formatDateTime(String(p.to))}` : null, p.reason ? `Reason: ${p.reason}` : null]
         .filter(Boolean)
         .join(" · ");
+    case "order_cancelled":
+      return [p.reason_label ? `Reason: ${String(p.reason_label)}` : null, p.note ? `“${String(p.note)}”` : null].filter(Boolean).join(" · ") || null;
     case "order_created":
       return p.source === "ai_document" ? "Created from AI document import" : null;
     default:

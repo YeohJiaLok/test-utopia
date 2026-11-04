@@ -33,7 +33,7 @@ import { AttachmentGallery } from "@/components/orders/attachment-gallery";
 import { WhatsAppIcon } from "@/components/orders/whatsapp-button";
 import { FadeIn } from "@/components/motion";
 import { DetailCard, DetailRow } from "@/components/admin/detail-card";
-import { AssignTechnicianDialog, CloseJobButton, RescheduleDialog } from "@/components/admin/order-actions";
+import { AssignTechnicianDialog, CancelOrderDialog, CloseJobButton, RescheduleDialog } from "@/components/admin/order-actions";
 import { WhatsAppLogEmpty, WhatsAppMessage } from "@/components/admin/whatsapp-log";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +55,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
   const canReassign = canPerform("reassign", ctx);
   const canReschedule = canPerform("reschedule", ctx);
   const canClose = canPerform("close", ctx);
+  const canCancel = canPerform("cancel", ctx);
   const technicians: TechnicianWithLoad[] = canAssign || canReassign ? await getTechniciansWithLoad() : [];
 
   const whatsapp = notifications.filter((n) => n.channel === "whatsapp");
@@ -63,7 +64,8 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
   const paymentGap = completion && completion.payment_amount !== null ? completion.payment_amount - completion.final_amount : null;
   const backHref = user.role === "admin" ? "/admin/orders" : "/manager";
 
-  const hasActions = canReschedule || canAssign || canReassign || canClose;
+  const hasActions = canReschedule || canAssign || canReassign || canClose || canCancel;
+  const cancelEvent = events.find((e) => e.action === "order_cancelled");
   const actions = (triggerClassName?: string) => (
     <>
       {canReschedule && (
@@ -81,6 +83,14 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
         />
       )}
       {canClose && <CloseJobButton orderId={order.id} orderNo={order.order_no} triggerClassName={triggerClassName} />}
+      {canCancel && (
+        <CancelOrderDialog
+          orderId={order.id}
+          orderNo={order.order_no}
+          technicianName={order.technician?.name ?? null}
+          triggerClassName={triggerClassName}
+        />
+      )}
     </>
   );
 
@@ -216,8 +226,11 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
             reviewed: order.reviewed_at,
             closed: order.closed_at,
           }}
+          cancellation={{ at: order.cancelled_at, reason: order.cancel_reason, note: order.cancel_note, by: cancelEvent?.actor_name }}
         />
-        <p className="text-muted-foreground mt-3 text-center text-xs">{STATUS_META[order.status].description}</p>
+        {order.status !== "cancelled" && (
+          <p className="text-muted-foreground mt-3 text-center text-xs">{STATUS_META[order.status].description}</p>
+        )}
       </FadeIn>
 
       {openFlags.some((f) => f.severity === "high") && (
@@ -353,9 +366,11 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm">
-                  {order.status === "new"
-                    ? "Assign a technician to get this job started."
-                    : "The technician hasn't submitted the completion report yet."}
+                  {order.status === "cancelled"
+                    ? "Not applicable: the order was cancelled before the work was done."
+                    : order.status === "new"
+                      ? "Assign a technician to get this job started."
+                      : "The technician hasn't submitted the completion report yet."}
                 </p>
               )}
             </DetailCard>
@@ -395,7 +410,11 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm">
-                  {order.status === "job_done" ? "Awaiting manager review." : "Reviewed by a manager once the job is done."}
+                  {order.status === "cancelled"
+                    ? "Not applicable: the order was cancelled."
+                    : order.status === "job_done"
+                      ? "Awaiting manager review."
+                      : "Reviewed by a manager once the job is done."}
                 </p>
               )}
             </DetailCard>

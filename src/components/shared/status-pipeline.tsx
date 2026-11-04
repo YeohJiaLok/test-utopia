@@ -1,24 +1,37 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Check } from "lucide-react";
+import { Check, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ORDER_STATUSES, STATUS_META, statusIndex } from "@/lib/workflow";
+import { CANCEL_REASON_LABELS, ORDER_STATUSES, STATUS_META, statusIndex } from "@/lib/workflow";
 import type { OrderStatus } from "@/lib/types";
 import { EASE } from "@/components/motion";
 
-/** Animated lifecycle tracker: New → Assigned → In Progress → Job Done → Reviewed → Closed */
+export interface CancellationInfo {
+  at: string | null;
+  reason: string | null;
+  note: string | null;
+  by?: string | null;
+}
+
+/**
+ * Animated lifecycle tracker: New → Assigned → In Progress → Job Done → Reviewed → Closed.
+ * A cancelled order shows a cancellation panel (reason, note, when, who) instead.
+ */
 export function StatusPipeline({
   status,
   timestamps,
   compact,
   className,
+  cancellation,
 }: {
   status: OrderStatus;
   timestamps?: Partial<Record<OrderStatus, string | null>>;
   compact?: boolean;
   className?: string;
+  cancellation?: CancellationInfo;
 }) {
+  if (status === "cancelled") return <CancelledPanel info={cancellation} className={className} />;
   const current = statusIndex(status);
   const progress = current / (ORDER_STATUSES.length - 1);
 
@@ -78,5 +91,47 @@ export function StatusPipeline({
         })}
       </ol>
     </div>
+  );
+}
+
+function CancelledPanel({ info, className }: { info?: CancellationInfo; className?: string }) {
+  const reason = info?.reason ? (CANCEL_REASON_LABELS[info.reason] ?? info.reason) : null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: EASE }}
+      className={cn("flex items-start gap-3", className)}
+      role="status"
+    >
+      <motion.span
+        initial={{ scale: 0.6, rotate: -20 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 16 }}
+        className="bg-destructive/10 text-destructive flex size-10 shrink-0 items-center justify-center rounded-full"
+      >
+        <XCircle className="size-5" />
+      </motion.span>
+      <div className="min-w-0 text-sm">
+        <p className="font-semibold">
+          Order cancelled{reason && <span className="text-muted-foreground font-normal"> · {reason}</span>}
+        </p>
+        {info?.note && <p className="mt-0.5 break-words">“{info.note}”</p>}
+        {(info?.at || info?.by) && (
+          <p className="text-muted-foreground mt-1 text-xs tabular">
+            {info.at &&
+              new Date(info.at).toLocaleString("en-MY", {
+                timeZone: "Asia/Kuala_Lumpur",
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            {info.by && ` · by ${info.by}`}
+          </p>
+        )}
+      </div>
+    </motion.div>
   );
 }

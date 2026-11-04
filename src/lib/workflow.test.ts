@@ -36,4 +36,22 @@ describe("workflow state machine (UI mirror of the DB rules)", () => {
       ["complete", "reschedule", "start"].sort(),
     );
   });
+
+  it("only admins cancel, and only before the work is done", () => {
+    for (const status of ["new", "assigned", "in_progress"] as const) {
+      expect(canPerform("cancel", { status, role: "admin", isAssignedTechnician: false })).toBe(true);
+      expect(canPerform("cancel", { status, role: "manager", isAssignedTechnician: false })).toBe(false);
+      expect(canPerform("cancel", { status, role: "technician", isAssignedTechnician: true })).toBe(false);
+    }
+    for (const status of ["job_done", "reviewed", "closed", "cancelled"] as const) {
+      expect(canPerform("cancel", { status, role: "admin", isAssignedTechnician: false })).toBe(false);
+    }
+  });
+
+  it("cancelled orders allow no further actions and sit outside the pipeline", () => {
+    for (const role of ["admin", "manager", "technician"] as const) {
+      expect(availableActions({ status: "cancelled", role, isAssignedTechnician: true })).toEqual([]);
+    }
+    expect(ORDER_STATUSES).not.toContain("cancelled");
+  });
 });

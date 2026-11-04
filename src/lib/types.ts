@@ -2,7 +2,7 @@
 // readable in one place; regenerate with `supabase gen types` for exhaustive typing.
 
 export type AppRole = "admin" | "technician" | "manager";
-export type OrderStatus = "new" | "assigned" | "in_progress" | "job_done" | "reviewed" | "closed";
+export type OrderStatus = "new" | "assigned" | "in_progress" | "job_done" | "reviewed" | "closed" | "cancelled";
 export type AttachmentKind = "photo" | "video" | "pdf" | "receipt";
 export type PaymentMethod = "cash" | "card" | "bank_transfer" | "ewallet" | "unpaid";
 export type FlagSeverity = "low" | "medium" | "high";
@@ -72,6 +72,11 @@ export interface Order {
   completed_at: string | null;
   reviewed_at: string | null;
   closed_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  /** Code from public.cancel_reason_label(): customer_request, duplicate, unreachable, out_of_area, other. */
+  cancel_reason: string | null;
+  cancel_note: string | null;
 }
 
 /** Order joined with the most commonly displayed relations. */

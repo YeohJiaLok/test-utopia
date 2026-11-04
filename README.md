@@ -141,7 +141,7 @@ flowchart TB
   grants). It comes only from `profiles.role`, never from the email address, editable user metadata or the request.
   Least privilege: users only read through RLS. Writes go through the audited workflow functions, so not even an admin
   can quietly edit a price. The only exceptions are column grants for marking notifications read and resolving AI flags
-  in your own name. `npm run security:check` signs in as a technician and runs 85 attacks, every one of which must be
+  in your own name. `npm run security:check` signs in as a technician and runs 86 attacks, every one of which must be
   blocked:
   - edited and encoded URLs (`/ADMIN`, `/tech/..%2Fadmin`, …)
   - forged and unsigned JWTs, and `user_metadata.role=admin`
@@ -150,6 +150,12 @@ flowchart TB
   - direct database API calls with the public key: self-promotion, forged audit events, other technicians' jobs, files
     and staff directory, rewriting customer WhatsApp links
   - office roles bypassing the workflow
+- **Every order is dispatched, and cancelling is controlled.** An order can't be created without a technician (the form and
+  `create_order()` both refuse it). Admins can cancel an order before the work is done (New, Assigned or In progress)
+  and must give a reason: customer cancelled, duplicate, unreachable, out of area, or other with a note. The order is
+  kept with a **Cancelled** status, the cancellation is recorded in the audit chain, and triggers notify the technician
+  (WhatsApp and in-app: don't go to site) and the customer (WhatsApp cancellation notice). Finished jobs go through
+  manager review instead.
 - **Notifications are data.** Triggers render the brief's WhatsApp template ("Hi {name}, Job {id} has been completed by
   Technician {name} at {time}…") into a `notifications` row with a `wa.me` deep link. They also notify the technician when
   a job is assigned and push in-app alerts to managers and accounts. Supabase Realtime delivers the alerts live (bell + toast).

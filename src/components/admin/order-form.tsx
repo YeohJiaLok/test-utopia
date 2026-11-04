@@ -28,7 +28,7 @@ import { TechnicianPicker } from "./technician-picker";
 type Field = FieldPath<OrderFormValues>;
 
 /** Fields the schema requires — drives the "required details" progress hint. */
-const REQUIRED = ["customerName", "customerPhone", "customerAddress", "serviceTypeId", "quotedPrice", "problemDescription"] as const;
+const REQUIRED = ["customerName", "customerPhone", "customerAddress", "serviceTypeId", "quotedPrice", "problemDescription", "technicianId"] as const;
 
 function Section({
   icon: Icon,
@@ -403,10 +403,11 @@ export function OrderForm({
               </FormField>
             </Section>
 
-            <Section icon={CalendarClock} title="Dispatch" description="Assign now or leave it in the queue. Times are Malaysia time (MYT)." delay={0.15}>
+            <Section icon={CalendarClock} title="Dispatch" description="Every order is dispatched to a technician when it is created. Times are Malaysia time (MYT)." delay={0.15}>
               <FormField
                 label="Assigned technician"
                 htmlFor={id("technicianId")}
+                required
                 error={errors.technicianId?.message}
                 hint={tech ? `${tech.team_code} · ${tech.skills.slice(0, 3).join(", ") || "General servicing"}` : "Least-loaded technician is recommended"}
                 className="sm:col-span-2"
@@ -420,7 +421,6 @@ export function OrderForm({
                       technicians={technicians}
                       value={f.value || null}
                       onChange={(next) => f.onChange(next ?? "")}
-                      allowUnassigned
                       invalid={!!errors.technicianId}
                       className="min-h-11 sm:min-h-9"
                     />
@@ -476,7 +476,7 @@ export function OrderForm({
                       </motion.p>
                     </AnimatePresence>
                   </div>
-                  <StatusBadge status={values.technicianId ? "assigned" : "new"} />
+                  <StatusBadge status="assigned" />
                 </div>
                 <dl className="space-y-2.5 text-sm">
                   <div className="flex justify-between gap-3">
@@ -489,7 +489,7 @@ export function OrderForm({
                   </div>
                   <div className="flex justify-between gap-3">
                     <dt className="text-muted-foreground">Technician</dt>
-                    <dd className="truncate text-right">{tech?.name ?? "Unassigned"}</dd>
+                    <dd className={cn("truncate text-right", !tech && "text-muted-foreground")}>{tech?.name ?? "Not chosen"}</dd>
                   </div>
                   <div className="flex justify-between gap-3">
                     <dt className="text-muted-foreground">Schedule</dt>

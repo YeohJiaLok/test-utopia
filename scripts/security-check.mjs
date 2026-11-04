@@ -172,6 +172,7 @@ function leaked(r) {
     ["sync_order_no_seq", {}],
     ["peek_next_order_no", {}],
     ["mfa_enrolled_users", {}],
+    ["cancel_order", { p_order_id: otherOrder.id, p_reason: "duplicate" }],
   ];
   for (const [fn, args] of rpcs) {
     const { data, error: e } = await db.rpc(fn, args);

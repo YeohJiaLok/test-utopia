@@ -36,6 +36,8 @@ export function summarizePayload(action: string, payload: Record<string, unknown
       const reason = typeof p.reason === "string" ? p.reason : null;
       return [when && `To ${when}`, reason].filter(Boolean).join(" · ") || null;
     }
+    case "order_cancelled":
+      return [p.reason_label ? String(p.reason_label) : null, p.note ? `“${String(p.note)}”` : null].filter(Boolean).join(" · ") || null;
     case "job_completed": {
       const amount = p.final_amount ?? p.payment_amount;
       const method = typeof p.payment_method === "string" ? (PAYMENT_METHOD_LABELS[p.payment_method] ?? p.payment_method) : null;

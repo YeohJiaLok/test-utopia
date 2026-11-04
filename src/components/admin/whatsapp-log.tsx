@@ -15,6 +15,8 @@ export const AUDIENCE_LABEL: Record<NotificationAudience, string> = {
 export const TEMPLATE_LABEL: Record<string, string> = {
   job_assigned_technician: "Job assignment",
   job_done_customer_feedback: "Feedback request",
+  job_cancelled_technician: "Job cancelled",
+  order_cancelled_customer: "Cancellation notice",
 };
 
 const STATUS_STYLE: Record<Notification["status"], { label: string; className: string }> = {

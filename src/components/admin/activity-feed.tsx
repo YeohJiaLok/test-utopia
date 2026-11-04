@@ -30,6 +30,7 @@ function detail(item: FeedItem) {
     return `→ ${String(p.technician_name)}`;
   }
   if (item.action === "job_rescheduled" && p.reason) return `“${String(p.reason)}”`;
+  if (item.action === "order_cancelled" && p.reason_label) return String(p.reason_label);
   if (item.action === "order_created" && p.source === "ai_document") return "via AI document import";
   return null;
 }

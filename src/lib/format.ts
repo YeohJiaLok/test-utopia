@@ -47,7 +47,10 @@ export function formatDayShort(value: string | Date) {
 
 export function formatRelative(value: string | Date | null | undefined) {
   if (!value) return "—";
-  return formatDistanceToNowStrict(typeof value === "string" ? new Date(value) : value, { addSuffix: true });
+  const date = typeof value === "string" ? new Date(value) : value;
+  // Within a minute either way (server and browser clocks drift slightly): "just now", never "in 0 seconds".
+  if (Math.abs(Date.now() - date.getTime()) < 60_000) return "just now";
+  return formatDistanceToNowStrict(date, { addSuffix: true });
 }
 
 export function maskPhone(phone: string | null | undefined) {

@@ -52,6 +52,7 @@ export const ACTIONS: Record<AuditTab, readonly string[]> = {
     "rework_requested",
     "job_closed",
     "job_rescheduled",
+    "order_cancelled",
   ],
   ai: ["copilot", "supervisor", "extraction", "insight"],
   users: ["user_created", "user_updated", "role_changed", "user_deactivated", "user_reactivated", "password_reset", "mfa_enabled", "mfa_disabled", "mfa_reset"],

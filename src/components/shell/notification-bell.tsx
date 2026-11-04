@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Bell, CheckCheck, MessageCircle } from "lucide-react";
@@ -113,6 +114,10 @@ export function NotificationBell({
                       type="button"
                       onClick={() => {
                         setOpen(false);
+                        if (n.status !== "read") {
+                          setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, status: "read" } : x)));
+                          void markNotificationsRead([n.id]);
+                        }
                         if (n.order_id) router.push(orderHref(role, n.order_id));
                       }}
                       className="hover:bg-muted/60 flex w-full gap-3 px-4 py-3 text-left transition-colors"
@@ -139,6 +144,15 @@ export function NotificationBell({
               </AnimatePresence>
             </ul>
           )}
+        </div>
+        <div className="border-t p-1.5">
+          <Link
+            href="/notifications"
+            onClick={() => setOpen(false)}
+            className="hover:bg-muted text-primary flex h-9 items-center justify-center rounded-md text-xs font-medium"
+          >
+            View all notifications
+          </Link>
         </div>
       </PopoverContent>
     </Popover>

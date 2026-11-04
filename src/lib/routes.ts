@@ -60,7 +60,7 @@ export const NAV: Record<AppRole, NavSection[]> = {
     {
       items: [
         { href: "/manager", label: "Dashboard", icon: "BarChart3" },
-        { href: "/manager/reviews", label: "Review queue", icon: "ClipboardCheck", badgeKey: "reviews" },
+        { href: "/manager/reviews", label: "Reviews", icon: "ClipboardCheck", badgeKey: "reviews" },
       ],
     },
     {

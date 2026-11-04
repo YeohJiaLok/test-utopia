@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { orderHref } from "@/lib/routes";
@@ -59,4 +60,17 @@ export async function markNotificationsRead(ids: string[]) {
     .update({ status: "read", read_at: new Date().toISOString() })
     .in("id", ids)
     .eq("recipient_profile_id", user.id);
+}
+
+/** Marks every in-app notification of the signed-in user as read (notification centre). */
+export async function markAllNotificationsRead() {
+  const user = await requireUser();
+  const supabase = await createClient();
+  await supabase
+    .from("notifications")
+    .update({ status: "read", read_at: new Date().toISOString() })
+    .eq("recipient_profile_id", user.id)
+    .eq("channel", "in_app")
+    .neq("status", "read");
+  revalidatePath("/", "layout");
 }

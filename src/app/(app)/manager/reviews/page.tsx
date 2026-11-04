@@ -8,12 +8,67 @@ import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Stagger, StaggerItem } from "@/components/motion";
 import { ReviewQueue } from "@/components/manager/review-queue";
+import { ReviewTabs } from "@/components/manager/reviews/review-tabs";
+import { ReadyToClose } from "@/components/manager/reviews/ready-to-close";
+import { SentBack } from "@/components/manager/reviews/sent-back";
+import { DecisionHistory } from "@/components/manager/reviews/decision-history";
 import { getReviewQueue } from "../_lib/queries";
+import {
+  REVIEW_TABS,
+  getDecisionHistory,
+  getReadyToClose,
+  getSentBack,
+  getTabCounts,
+  parseHistoryFilters,
+  type ReviewTab,
+} from "./_lib/workspace";
 
-export const metadata: Metadata = { title: "Review queue" };
+export const metadata: Metadata = { title: "Reviews" };
 
-export default async function ReviewQueuePage() {
-  await requireUser(["manager", "admin"]);
+const HEADER: Record<ReviewTab, { title: string; description: string }> = {
+  awaiting: {
+    title: "Review queue",
+    description: "Completed jobs awaiting manager sign-off. Check the evidence, rate the work, then approve or send it back for rework.",
+  },
+  close: {
+    title: "Ready to close",
+    description: "Approved jobs waiting to be finalised. Check payment is collected, then close them one by one or in bulk.",
+  },
+  "sent-back": {
+    title: "Sent back for rework",
+    description: "Jobs you returned to the technician. They come back to the review queue when the technician resubmits.",
+  },
+  history: {
+    title: "Decision history",
+    description: "Every approval, rework request and close, with rating, notes and who decided, from the tamper-evident audit trail.",
+  },
+};
+
+export default async function ReviewsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const user = await requireUser(["manager", "admin"]);
+  const sp = await searchParams;
+  const tabParam = Array.isArray(sp.tab) ? sp.tab[0] : sp.tab;
+  const tab: ReviewTab = (REVIEW_TABS as string[]).includes(tabParam ?? "") ? (tabParam as ReviewTab) : "awaiting";
+  const counts = await getTabCounts();
+  const header = HEADER[tab];
+
+  if (tab !== "awaiting") {
+    const filters = parseHistoryFilters(sp);
+    return (
+      <div className="space-y-5">
+        <PageHeader eyebrow="Quality control" title={header.title} description={header.description} />
+        <ReviewTabs active={tab} counts={counts} />
+        {tab === "close" && <ReadyToClose items={await getReadyToClose()} />}
+        {tab === "sent-back" && <SentBack items={await getSentBack()} />}
+        {tab === "history" && <DecisionHistory filters={filters} {...await getDecisionHistory(filters, user.id)} />}
+      </div>
+    );
+  }
+
   const { items, asOf } = await getReviewQueue();
 
   const value = items.reduce((s, i) => s + i.final, 0);
@@ -36,11 +91,11 @@ export default async function ReviewQueuePage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         eyebrow="Quality control"
-        title="Review queue"
-        description="Completed jobs awaiting manager sign-off. Check the evidence, rate the work, then approve or send it back for rework."
+        title={header.title}
+        description={header.description}
         actions={
           items[0] ? (
             <Link
@@ -52,6 +107,8 @@ export default async function ReviewQueuePage() {
           ) : undefined
         }
       />
+
+      <ReviewTabs active={tab} counts={counts} />
 
       <Stagger className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 [&>*]:min-w-0">
         {chips.map((c, i) => (

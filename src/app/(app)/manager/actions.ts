@@ -71,6 +71,27 @@ export async function closeOrder(orderId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/**
+ * Closes several approved orders. Each one goes through close_job() (role + status checked
+ * in the database, one audit-chain event per order); the result says which ones failed.
+ */
+export async function closeOrders(orderIds: string[]): Promise<ActionResult<{ closed: number; failed: { id: string; error: string }[] }>> {
+  await requireUser(["manager", "admin"]);
+  const ids = z.array(z.uuid()).min(1).max(100).safeParse(orderIds);
+  if (!ids.success) return { ok: false, error: "Select between 1 and 100 orders." };
+
+  const supabase = await createClient();
+  const failed: { id: string; error: string }[] = [];
+  let closed = 0;
+  for (const id of ids.data) {
+    const { error } = await supabase.rpc("close_job", { p_order_id: id });
+    if (error) failed.push({ id, error: workflowErrorMessage(error) });
+    else closed += 1;
+  }
+  revalidatePath("/", "layout");
+  return { ok: true, closed, failed };
+}
+
 const resolveSchema = z.object({
   flagId: z.uuid(),
   note: z.string().trim().min(3, "Add a short resolution note.").max(1000),

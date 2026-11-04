@@ -5,6 +5,7 @@ import {
   CalendarClock,
   ChevronLeft,
   ClipboardList,
+  Info,
   FileText,
   MapPin,
   Phone,
@@ -41,7 +42,13 @@ function initials(name: string) {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default async function TechJobPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TechJobPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireUser(["technician"]);
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
@@ -117,6 +124,17 @@ export default async function TechJobPage({ params }: { params: Promise<{ id: st
               </div>
             </section>
           </StaggerItem>
+          {order.status === "assigned" && (await searchParams).start === "first" && (
+            <StaggerItem>
+              <div role="status" className="flex gap-3 rounded-2xl border border-blue-500/25 bg-blue-500/8 p-4 text-sm">
+                <Info className="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <p className="font-semibold text-blue-700 dark:text-blue-300">Start the job first</p>
+                  <p className="text-foreground/80 mt-0.5">Tap Start job when you arrive on site. You can complete it once it&apos;s in progress.</p>
+                </div>
+              </div>
+            </StaggerItem>
+          )}
           {rework && (
             <StaggerItem>
               <div className="flex gap-3 rounded-2xl border border-red-500/25 bg-red-500/8 p-4 text-sm">

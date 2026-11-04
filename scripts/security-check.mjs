@@ -203,6 +203,19 @@ function leaked(r) {
     record("DB", "Read staff directory (emails, roles, phones)", onlySelf, `${profs.length} profile(s), ${techs.length} technician record(s)`);
   }
 
+  {
+    // Workflow order: Assigned → In Progress → Job Done (no skipping "Start job").
+    const { data: mine } = await svc.from("orders").select("id").eq("assigned_technician_id", bennyTech.id).eq("status", "assigned").limit(1).maybeSingle();
+    if (mine) {
+      const { error: e } = await db.rpc("complete_job", { p_order_id: mine.id, p_work_done: "Skipped start" });
+      record("Workflow", "Complete own Assigned job without starting it", !!e, e?.message.slice(0, 60));
+      if (!e) {
+        await svc.from("job_completions").delete().eq("order_id", mine.id);
+        await svc.from("orders").update({ status: "assigned", completed_at: null, started_at: null }).eq("id", mine.id);
+      }
+    }
+  }
+
   // ---------- Layer 5: storage ----------
   {
     // Plant a real (non-sample) file on another technician's order, then try to read it.

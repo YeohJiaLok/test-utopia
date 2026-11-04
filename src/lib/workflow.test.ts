@@ -33,7 +33,7 @@ describe("workflow state machine (UI mirror of the DB rules)", () => {
 
   it("lists technician actions for an assigned job", () => {
     expect(availableActions({ status: "assigned", role: "technician", isAssignedTechnician: true }).sort()).toEqual(
-      ["complete", "reschedule", "start"].sort(),
+      ["reschedule", "start"].sort(),
     );
   });
 
@@ -53,5 +53,11 @@ describe("workflow state machine (UI mirror of the DB rules)", () => {
       expect(availableActions({ status: "cancelled", role, isAssignedTechnician: true })).toEqual([]);
     }
     expect(ORDER_STATUSES).not.toContain("cancelled");
+  });
+
+  it("requires the job to be started before it can be completed", () => {
+    expect(canPerform("complete", { status: "assigned", role: "technician", isAssignedTechnician: true })).toBe(false);
+    expect(canPerform("complete", { status: "in_progress", role: "technician", isAssignedTechnician: true })).toBe(true);
+    expect(canPerform("complete", { status: "in_progress", role: "technician", isAssignedTechnician: false })).toBe(false);
   });
 });

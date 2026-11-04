@@ -49,7 +49,8 @@ export const TRANSITIONS: TransitionRule[] = [
   { action: "assign", from: ["new"], to: "assigned", roles: ["admin"] },
   { action: "reassign", from: ["assigned"], to: "assigned", roles: ["admin"] },
   { action: "start", from: ["assigned"], to: "in_progress", roles: ["technician"], ownerOnly: true },
-  { action: "complete", from: ["assigned", "in_progress"], to: "job_done", roles: ["technician"], ownerOnly: true },
+  // Assigned → In Progress → Job Done: the job must be started on site first (complete_job enforces it).
+  { action: "complete", from: ["in_progress"], to: "job_done", roles: ["technician"], ownerOnly: true },
   { action: "review", from: ["job_done"], to: "reviewed", roles: ["manager"] },
   { action: "rework", from: ["job_done"], to: "in_progress", roles: ["manager"] },
   { action: "close", from: ["reviewed"], to: "closed", roles: ["manager", "admin"] },

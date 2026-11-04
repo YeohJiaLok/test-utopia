@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CompleteWizard } from "@/components/tech/complete/complete-wizard";
 import type { CompletionOutcome, ExistingMedia, ExistingReceipt } from "@/components/tech/complete/types";
 import { requireUser } from "@/lib/auth";
@@ -18,6 +18,8 @@ export default async function CompleteJobPage({ params }: { params: Promise<{ id
   const detail = await getOrderDetail(id);
   if (!detail) notFound();
   const { order, attachments, completion, notifications } = detail;
+  // The job must be started on site before it can be completed.
+  if (order.status === "assigned") redirect(`/tech/jobs/${order.id}?start=first`);
 
   // Already completed (or just completed and re-rendered): the wizard shows its success screen.
   let completed: CompletionOutcome | null = null;

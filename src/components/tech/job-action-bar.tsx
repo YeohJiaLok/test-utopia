@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, ClipboardCheck, Loader2, PlayCircle } from "lucide-react";
+import { ClipboardCheck, Loader2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -49,13 +49,8 @@ export function JobActionBar({ orderId, orderNo, status, scheduledAt }: JobActio
         <RescheduleSheet orderId={orderId} orderNo={orderNo} currentScheduledAt={scheduledAt} compact={status === "assigned"} />
         {status === "assigned" ? (
           <>
-            <Link
-              href={completeHref}
-              className={cn(buttonVariants({ variant: "outline" }), "h-12 flex-1 rounded-xl text-[15px]")}
-            >
-              Complete
-            </Link>
-            <Button className="h-12 flex-[1.4] rounded-xl text-[15px] font-semibold" disabled={pending} onClick={startJob}>
+            {/* Completing comes after starting: Assigned → In Progress → Job Done. */}
+            <Button className="h-12 flex-1 rounded-xl text-[15px] font-semibold" disabled={pending} onClick={startJob}>
               {pending ? <Loader2 className="size-5 animate-spin" /> : <PlayCircle className="size-5" />}
               Start job
             </Button>
@@ -96,9 +91,6 @@ export function JobActionPanel({ orderId, orderNo, status, scheduledAt, classNam
               {pending ? <Loader2 className="size-5 animate-spin" /> : <PlayCircle className="size-5" />}
               Start job
             </Button>
-            <Link href={completeHref} className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-xl")}>
-              Complete without starting <ArrowRight className="size-4" />
-            </Link>
           </>
         ) : (
           <Link href={completeHref} className={cn(buttonVariants(), "h-11 rounded-xl text-[15px] font-semibold")}>

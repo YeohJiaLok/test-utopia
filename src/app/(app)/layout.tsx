@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell, type NavBadges } from "@/components/shell/app-shell";
 import { CopilotDrawer } from "@/components/ai/copilot-drawer";
 import type { Notification } from "@/lib/types";
+import { lateCutoff } from "@/lib/workflow";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -23,13 +24,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       switch (user.role) {
         case "admin":
           return {
-            unassigned: await count(supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "new")),
+            // Jobs whose start time has passed with nobody on site (see LATE_GRACE_MINUTES).
+            late: await count(
+              supabase
+                .from("orders")
+                .select("id", { count: "exact", head: true })
+                .eq("status", "assigned")
+                .lt("scheduled_at", lateCutoff()),
+            ),
           };
-        case "manager":
-          return {
-            reviews: await count(supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "job_done")),
-            flags: await count(supabase.from("ai_flags").select("id", { count: "exact", head: true }).eq("resolved", false)),
-          };
+        case "manager": {
+          const [reviews, flags] = await Promise.all([
+            count(supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "job_done")),
+            count(supabase.from("ai_flags").select("id", { count: "exact", head: true }).eq("resolved", false)),
+          ]);
+          return { reviews, flags };
+        }
         case "technician":
           return {
             jobs: await count(

@@ -36,20 +36,22 @@ const getSession = cache(async (): Promise<Session> => {
   const userId = claimsData?.claims?.sub;
   if (!userId) return { status: "none" };
 
-  const [{ data: profile }, mfa] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, email, role, branch_id, active").eq("id", userId).maybeSingle(),
-    // aal2 already satisfies any 2FA requirement; otherwise ask the database (fails closed).
-    claimsData.claims.aal === "aal2" ? Promise.resolve({ data: true, error: null }) : supabase.rpc("mfa_satisfied"),
-  ]);
+  // One round trip: profile, linked technician and 2FA state (public.session_context()).
+  const { data, error } = await supabase.rpc("session_context").maybeSingle<{
+    id: string;
+    full_name: string;
+    email: string | null;
+    role: AppRole;
+    branch_id: number | null;
+    active: boolean;
+    technician_id: string | null;
+    mfa_ok: boolean;
+  }>();
+  if (error) throw new Error("Could not verify your sign-in. Refresh to try again."); // fail closed
+  const profile = data;
   if (!profile || !profile.active) return { status: "blocked" };
-  if (mfa.error) throw new Error("Could not verify your sign-in. Refresh to try again.");
-  if (mfa.data !== true) return { status: "mfa" };
-
-  let technicianId: string | null = null;
-  if (profile.role === "technician") {
-    const { data: tech } = await supabase.from("technicians").select("id").eq("profile_id", userId).maybeSingle();
-    technicianId = tech?.id ?? null;
-  }
+  if (profile.mfa_ok !== true) return { status: "mfa" };
+  const technicianId = profile.role === "technician" ? profile.technician_id : null;
 
   return {
     status: "ok",

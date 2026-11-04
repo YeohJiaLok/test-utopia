@@ -23,7 +23,7 @@ describe("seed generator", () => {
   it("produces ~8 weeks of orders across every status", () => {
     expect(data.orders.length).toBeGreaterThan(300);
     const statuses = new Set(data.orders.map((o) => o.status));
-    expect([...statuses].sort()).toEqual(["assigned", "closed", "in_progress", "job_done", "new", "reviewed"]);
+    expect([...statuses].sort()).toEqual(["assigned", "cancelled", "closed", "in_progress", "job_done", "reviewed"]);
   });
 
   it("never dates lifecycle events in the future", () => {
@@ -68,5 +68,26 @@ describe("technician roster and login accounts", () => {
       expect(techAccounts.find((a) => a.key === t.account)?.fullName).toBe(t.name);
     }
     expect(new Set(SAMPLE_ACCOUNTS.map((a) => a.email)).size).toBe(SAMPLE_ACCOUNTS.length);
+  });
+});
+
+describe("dispatch rules in the demo data", () => {
+  it("assigns every order a technician (create_order requires one)", () => {
+    const seed = generateSeed(refs, new Date("2026-11-04T03:00:00Z"));
+    expect(seed.orders.every((o) => o.assigned_technician_id)).toBe(true);
+    expect(seed.orders.some((o) => o.status === "new")).toBe(false);
+  });
+
+  it("gives every cancelled order a reason, a time and an audit event", () => {
+    const now = new Date("2026-11-04T03:00:00Z");
+    const seed = generateSeed(refs, now);
+    const cancelled = seed.orders.filter((o) => o.status === "cancelled");
+    expect(cancelled.length).toBeGreaterThan(0);
+    for (const o of cancelled) {
+      expect(o.cancel_reason).toBeTruthy();
+      expect(new Date(o.cancelled_at as string).getTime()).toBeLessThanOrEqual(now.getTime());
+      expect(o.started_at).toBeNull();
+      expect(seed.events.some((e) => e.order_id === o.id && e.action === "order_cancelled")).toBe(true);
+    }
   });
 });

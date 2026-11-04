@@ -16,7 +16,7 @@ export interface NavItem {
   href: string;
   label: string;
   icon: string; // lucide icon name, resolved in the shell
-  badgeKey?: "reviews" | "flags" | "jobs" | "unassigned";
+  badgeKey?: "reviews" | "flags" | "jobs" | "late";
 }
 
 export interface NavSection {
@@ -39,7 +39,7 @@ export const NAV: Record<AppRole, NavSection[]> = {
     {
       items: [
         { href: "/admin", label: "Overview", icon: "LayoutDashboard" },
-        { href: "/admin/orders", label: "Orders", icon: "ClipboardList", badgeKey: "unassigned" },
+        { href: "/admin/orders", label: "Orders", icon: "ClipboardList", badgeKey: "late" },
         { href: "/admin/technicians", label: "Technicians", icon: "Users" },
         { href: "/admin/notifications", label: "WhatsApp outbox", icon: "MessageCircle" },
       ],

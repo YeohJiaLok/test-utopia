@@ -141,7 +141,7 @@ flowchart TB
   grants). It comes only from `profiles.role`, never from the email address, editable user metadata or the request.
   Least privilege: users only read through RLS. Writes go through the audited workflow functions, so not even an admin
   can quietly edit a price. The only exceptions are column grants for marking notifications read and resolving AI flags
-  in your own name. `npm run security:check` signs in as a technician and runs 86 attacks, every one of which must be
+  in your own name. `npm run security:check` signs in as a technician and runs 89 attacks, every one of which must be
   blocked:
   - edited and encoded URLs (`/ADMIN`, `/tech/..%2Fadmin`, …)
   - forged and unsigned JWTs, and `user_metadata.role=admin`
@@ -156,6 +156,11 @@ flowchart TB
   kept with a **Cancelled** status, the cancellation is recorded in the audit chain, and triggers notify the technician
   (WhatsApp and in-app: don't go to site) and the customer (WhatsApp cancellation notice). Finished jobs go through
   manager review instead.
+- **Fast under row-level security.** Security rules call the role helpers as `(select …)` sub-queries, so they're
+  evaluated once per query instead of once per row: an admin's order count went from 380 ms to the network floor, and
+  the audit-log count from 1.2 s to 150 ms. The signed-in user's profile, technician link and 2FA state load in one
+  call. In a production build every page renders in about 0.25–0.45 s against the Singapore database. Deploy the app
+  in the same region (Vercel `sin1`) to cut that further.
 - **Notifications are data.** Triggers render the brief's WhatsApp template ("Hi {name}, Job {id} has been completed by
   Technician {name} at {time}…") into a `notifications` row with a `wa.me` deep link. They also notify the technician when
   a job is assigned and push in-app alerts to managers and accounts. Supabase Realtime delivers the alerts live (bell + toast).

@@ -77,6 +77,12 @@ export function statusIndex(status: OrderStatus) {
   return ORDER_STATUSES.indexOf(status);
 }
 
+/** A job counts as running late this long after its slot if nobody has started it. */
+export const LATE_GRACE_MINUTES = 15;
+export function lateCutoff(now: Date = new Date()) {
+  return new Date(now.getTime() - LATE_GRACE_MINUTES * 60_000).toISOString();
+}
+
 export const OPEN_STATUSES: OrderStatus[] = ["new", "assigned", "in_progress"];
 export const COMPLETED_STATUSES: OrderStatus[] = ["job_done", "reviewed", "closed"];
 

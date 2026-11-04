@@ -272,7 +272,15 @@ function leaked(r) {
       if (own) {
         const { error: e } = await thief.rpc("start_job", { p_order_id: own.id });
         record("2FA", "Password only, start own job", !!e, e?.message.slice(0, 60));
+        // If an attack ever gets through, undo it (the audit chain keeps the record).
+        if (!e) await svc.from("orders").update({ status: "assigned", started_at: null }).eq("id", own.id);
+        const { error: rs } = await thief.rpc("reschedule_order", { p_order_id: own.id, p_new_scheduled_at: new Date(Date.now() + 864e5).toISOString(), p_reason: "x" });
+        record("2FA", "Password only, reschedule own job", !!rs, rs?.message.slice(0, 60));
       }
+      const { data: reviewed } = await svc.from("orders").select("id").eq("status", "reviewed").limit(1).single();
+      const { error: cl } = await thief.rpc("close_job", { p_order_id: reviewed.id });
+      record("2FA", "Password only, close an order", !!cl, cl?.message.slice(0, 60));
+      if (!cl) await svc.from("orders").update({ status: "reviewed", closed_at: null }).eq("id", reviewed.id);
       const { error: un } = await thief.auth.mfa.unenroll({ factorId: en.id });
       record("2FA", "Password only, remove the owner's authenticator", !!un, un?.message.slice(0, 60));
       const { data: rogue, error: re } = await thief.auth.mfa.enroll({ factorType: "totp", friendlyName: "Thief phone" });

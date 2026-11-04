@@ -79,6 +79,23 @@ const WORK: Record<ServiceCode, string[]> = {
 };
 
 const EXTRA_REASONS = ["Additional 5ft copper piping", "Replaced capacitor (parts)", "Extra gas top-up", "Bracket & trunking", "Drain pump replacement", "After-hours callout"];
+/** Cancellations: [reason code, note] (codes match public.cancel_reason_label()). */
+const CANCELLATIONS: [string, string | null][] = [
+  ["customer_request", "Customer fixed it themselves, will call if needed"],
+  ["customer_request", "Customer moving house, will rebook at new address"],
+  ["duplicate", "Same request booked twice by phone and WhatsApp"],
+  ["unreachable", "No answer after 3 calls and a WhatsApp message"],
+  ["out_of_area", "Address is outside our service coverage"],
+  ["other", "Building management closed the plant room for renovation"],
+];
+const CANCEL_LABEL: Record<string, string> = {
+  customer_request: "Customer cancelled",
+  duplicate: "Duplicate order",
+  unreachable: "Customer unreachable",
+  out_of_area: "Outside service area",
+  other: "Other",
+};
+
 const RESCHEDULE_REASONS = ["Customer not home", "Parts unavailable", "Customer requested new date", "Heavy rain — outdoor unit unsafe", "Previous job overran"];
 
 /* ------------------------------------------------------------------ PRNG -- */
@@ -164,6 +181,8 @@ function waNumber(phone: string) {
 
 export function generateSeed(refs: SeedRefs, now: Date = new Date()): SeedOutput {
   const r = rng();
+  // Separate stream for cancellations, so adding them leaves the rest of the demo data unchanged.
+  const rc = rng(20261104);
   const out: SeedOutput = {
     technicians: [], customers: [], orders: [], completions: [], attachments: [],
     events: [], reschedules: [], reviews: [], notifications: [],
@@ -248,9 +267,10 @@ export function generateSeed(refs: SeedRefs, now: Date = new Date()): SeedOutput
       // Lifecycle based on schedule vs now
       const isFuture = scheduledAt > nowMyt;
       const isToday = scheduledAt >= today && scheduledAt < addDays(today, 1);
+      // Every order is dispatched when it is created (create_order() requires a technician).
       let status: string;
       if (isFuture) {
-        status = !isToday && r.chance(0.4) ? "new" : "assigned";
+        status = "assigned";
       } else {
         const ageDays = (now.getTime() - scheduledAt.getTime()) / 86_400_000;
         if (ageDays < 0.4 && r.chance(0.3)) status = "in_progress";
@@ -258,8 +278,11 @@ export function generateSeed(refs: SeedRefs, now: Date = new Date()): SeedOutput
         else if (ageDays < 3.5) status = r.chance(0.55) ? "reviewed" : "job_done";
         else status = r.chance(0.9) ? "closed" : "reviewed";
       }
+      // A few orders are cancelled before the visit (customer called off, duplicate, …).
+      const cancellation = !isToday && rc.chance(0.04) ? rc.pick(CANCELLATIONS) : null;
+      if (cancellation) status = "cancelled";
 
-      const assigned = status !== "new";
+      const assigned = true;
       let assignedAt = assigned ? addMinutes(createdAt, r.int(10, 180)) : null;
       if (assignedAt && assignedAt > now) assignedAt = new Date(Math.max(createdAt.getTime(), now.getTime() - 60_000));
 
@@ -293,6 +316,13 @@ export function generateSeed(refs: SeedRefs, now: Date = new Date()): SeedOutput
       const completedAt = done ? past(addMinutes(startedAt!, st.est_minutes + r.int(-15, 75)), startedAt!) : null;
       const reviewedAt = ["reviewed", "closed"].includes(status) ? past(addHours(completedAt!, r.int(2, 30)), completedAt!) : null;
       const closedAt = status === "closed" ? past(addHours(reviewedAt!, r.int(1, 24)), reviewedAt!) : null;
+      // Cancelled some hours before the slot, after it was assigned.
+      const cancelledAt = cancellation
+        ? past(addHours(scheduledAt, -rc.int(3, 30)), assignedAt ?? createdAt)
+        : null;
+      if (cancelledAt && assignedAt && cancelledAt < assignedAt) {
+        cancelledAt.setTime(Math.min(assignedAt.getTime() + 15 * 60_000, now.getTime() - 60_000));
+      }
 
       out.orders.push({
         id: orderId,
@@ -313,12 +343,16 @@ export function generateSeed(refs: SeedRefs, now: Date = new Date()): SeedOutput
         source: r.chance(0.12) ? "ai_document" : "manual",
         created_by: refs.adminProfileId,
         created_at: createdAt.toISOString(),
-        updated_at: (closedAt ?? reviewedAt ?? completedAt ?? startedAt ?? assignedAt ?? createdAt).toISOString(),
+        updated_at: (cancelledAt ?? closedAt ?? reviewedAt ?? completedAt ?? startedAt ?? assignedAt ?? createdAt).toISOString(),
         assigned_at: assignedAt?.toISOString() ?? null,
         started_at: startedAt?.toISOString() ?? null,
         completed_at: completedAt?.toISOString() ?? null,
         reviewed_at: reviewedAt?.toISOString() ?? null,
         closed_at: closedAt?.toISOString() ?? null,
+        cancelled_at: cancelledAt?.toISOString() ?? null,
+        cancelled_by: cancelledAt ? refs.adminProfileId : null,
+        cancel_reason: cancellation?.[0] ?? null,
+        cancel_note: cancellation?.[1] ?? null,
       });
 
       const techActor = { id: tech.profile_id, name: tech.name, role: "technician" };
@@ -328,6 +362,22 @@ export function generateSeed(refs: SeedRefs, now: Date = new Date()): SeedOutput
         event(orderId, new Date(rs.created_at as string), "job_rescheduled", "assigned", "assigned", techActor, { from: rs.old_scheduled_at, to: rs.new_scheduled_at, reason: rs.reason });
       }
       if (startedAt) event(orderId, startedAt, "job_started", "assigned", "in_progress", techActor);
+      if (cancellation && cancelledAt) {
+        event(orderId, cancelledAt, "order_cancelled", "assigned", "cancelled", admin, {
+          reason: cancellation[0], reason_label: CANCEL_LABEL[cancellation[0]], note: cancellation[1], technician_name: tech.name,
+        });
+        const msg = `Hi ${customer.name},
+Your Sejuk Sejuk service order ${orderNo} (${st.name}) has been cancelled.
+Reason: ${CANCEL_LABEL[cancellation[0]]}
+To book again, simply reply to this message.
+Thank you!`;
+        out.notifications.push({
+          order_id: orderId, channel: "whatsapp", audience: "customer", recipient_phone: customer.phone,
+          template: "order_cancelled_customer", title: `Cancellation notice · ${customer.name}`, message: msg,
+          deep_link: `https://wa.me/${waNumber(customer.phone)}?text=${encodeURIComponent(msg)}`,
+          status: "opened", created_at: cancelledAt.toISOString(),
+        });
+      }
 
       if (done && completedAt) {
         // Deliberate anomalies on recent, un-reviewed jobs (for the AI supervisor demo)

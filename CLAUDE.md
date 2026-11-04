@@ -35,8 +35,15 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
   `app/(app)/mfa-actions.ts`, helpers in `lib/mfa.ts`); sign-in's code step is `/login/verify`. Enforcement is in Postgres:
   `mfa_satisfied()` gates `current_app_role()` / `current_technician_id()`, so an aal1 session of a 2FA user gets no data.
   `requireUser` sends such sessions to `/login/verify`. Admins reset lost phones from Users & roles (audited `mfa_reset`).
+- **Role checks in SQL must fail closed.** `current_app_role()` is NULL for signed-out, deactivated and 2FA-pending
+  sessions, and `if not (role = 'x' …) then raise` silently lets NULL through. Write `role is distinct from 'x'`,
+  `(…) is not true`, or `coalesce(role::text, '') not in (…)` (`*_fail_closed_role_checks.sql`).
+- **RLS must stay fast:** call helpers as `(select public.current_app_role())` / `(select public.current_technician_id())`
+  so Postgres evaluates them once per query, never per row; technician scoping is `order_id in (select … where
+  assigned_technician_id = (select current_technician_id()))` (`*_rls_performance.sql`). `requireUser` loads the
+  user with one `session_context()` call.
 - After any change to auth, routes, RLS, grants or functions run `npm run security:check` (dev server up): it signs in as
-  a technician and fires 86 escalation attacks (incl. 2FA bypasses); every one must report BLOCKED. Add a case for each new route/table/RPC.
+  a technician and fires 89 escalation attacks (incl. 2FA bypasses); every one must report BLOCKED. Add a case for each new route/table/RPC.
 
 ## Next.js 16 specifics
 - `middleware` is now `src/proxy.ts`. `params` / `searchParams` are Promises.

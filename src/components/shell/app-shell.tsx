@@ -16,7 +16,7 @@ import { NotificationBell } from "./notification-bell";
 import { CommandPalette } from "./command-palette";
 import { UserMenu } from "./user-menu";
 
-export type NavBadges = Partial<Record<"reviews" | "flags" | "jobs" | "unassigned", number>>;
+export type NavBadges = Partial<Record<"reviews" | "flags" | "jobs" | "late", number>>;
 
 function isActive(pathname: string, href: string, all: string[]) {
   if (pathname === href) return true;

@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { ORDER_SELECT, normalizeOrder } from "@/lib/data/orders";
-import { ALL_STATUSES, ORDER_STATUSES } from "@/lib/workflow";
+import { ALL_STATUSES, COMPLETED_STATUSES, ORDER_STATUSES, lateCutoff } from "@/lib/workflow";
 import { getRange } from "@/lib/time";
 import type { OrderStatus, OrderWithRelations, TechnicianKpi } from "@/lib/types";
 import type { OrderFilters } from "@/components/admin/orders-url";
@@ -106,13 +106,38 @@ export interface ActivityItem {
 export async function getOverview() {
   const supabase = await createClient();
   const today = getRange("today");
+  const cutoff = lateCutoff();
 
-  const [daily, unassignedCount, inProgressCount, statusCounts, queue, activity, onSite] = await Promise.all([
+  // One parallel batch: every panel on the overview comes from here.
+  const [daily, todayJobs, late, unscheduled, awaitingReview, inProgressCount, statusCounts, activity, onSite] = await Promise.all([
     supabase.rpc("kpi_daily", { p_from: today.from, p_to: today.to }),
-    supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "new"),
+    supabase
+      .from("orders")
+      .select(ORDER_SELECT)
+      .gte("scheduled_at", today.from)
+      .lt("scheduled_at", today.to)
+      .neq("status", "cancelled")
+      .order("scheduled_at", { ascending: true })
+      .limit(60),
+    // Running late: slot passed, technician hasn't started.
+    supabase
+      .from("orders")
+      .select(ORDER_SELECT, { count: "exact" })
+      .eq("status", "assigned")
+      .lt("scheduled_at", cutoff)
+      .order("scheduled_at", { ascending: true })
+      .limit(8),
+    // Assigned but no visit time agreed yet.
+    supabase
+      .from("orders")
+      .select(ORDER_SELECT, { count: "exact" })
+      .eq("status", "assigned")
+      .is("scheduled_at", null)
+      .order("created_at", { ascending: true })
+      .limit(8),
+    supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "job_done"),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "in_progress"),
     supabase.rpc("kpi_status_counts"),
-    supabase.from("orders").select(ORDER_SELECT).eq("status", "new").order("created_at", { ascending: true }).limit(8),
     supabase
       .from("order_events")
       .select("id, order_id, action, actor_name, actor_role, to_status, payload, created_at, order:orders(order_no, customer_name)")
@@ -126,17 +151,26 @@ export async function getOverview() {
   for (const row of (statusCounts.data ?? []) as { status: OrderStatus; total: number }[]) {
     counts[row.status] = Number(row.total);
   }
+  const todayList = ((todayJobs.data ?? []) as unknown as OrderWithRelations[]).map(normalizeOrder);
+  const doneToday = todayList.filter((o) => (COMPLETED_STATUSES as string[]).includes(o.status)).length;
 
   return {
     stats: {
-      newToday: Number(day?.jobs_created ?? 0),
-      unassigned: unassignedCount.count ?? 0,
-      inProgress: inProgressCount.count ?? 0,
-      completedToday: Number(day?.jobs_completed ?? 0),
+      todayTotal: todayList.length,
+      todayDone: doneToday,
+      onSite: inProgressCount.count ?? 0,
+      late: late.count ?? 0,
+      awaitingReview: awaitingReview.count ?? 0,
       revenueToday: Number(day?.revenue ?? 0),
+      completedToday: Number(day?.jobs_completed ?? 0),
     },
     statusCounts: counts,
-    queue: ((queue.data ?? []) as OrderWithRelations[]).map(normalizeOrder),
+    generatedAt: new Date().toISOString(),
+    today: todayList,
+    late: ((late.data ?? []) as unknown as OrderWithRelations[]).map(normalizeOrder),
+    lateTotal: late.count ?? 0,
+    unscheduled: ((unscheduled.data ?? []) as unknown as OrderWithRelations[]).map(normalizeOrder),
+    unscheduledTotal: unscheduled.count ?? 0,
     activity: ((activity.data ?? []) as Record<string, unknown>[]).map((e): ActivityItem => {
       const order = (Array.isArray(e.order) ? e.order[0] : e.order) as { order_no: string; customer_name: string } | null;
       return {

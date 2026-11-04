@@ -13,11 +13,12 @@ Every module in the brief is implemented, plus all three optional advanced AI ch
 | Module 2: Technician service job (mobile-first, ≤ 6 uploads, payment capture, customer feedback message) | ✅ | `/tech` |
 | Module 3: WhatsApp notification on **Job Done** (DB trigger + `wa.me` deep link) | ✅ | `*_workflow.sql`, `/admin/notifications` |
 | Bonus: KPI dashboard (cards, leaderboard, charts, weekly/monthly views) | ✅ | `/manager` |
-| AI module: Operations Query Window | ✅ | `/manager/assistant` + floating copilot |
+| AI module: Operations Query Window | ✅ | Floating **Sejuk Ops AI** assistant (admin + manager): agent trace, charts on demand, saved history, usage policy |
 | Advanced: AI Workflow Supervisor | ✅ | `/manager/flags`, review workspace |
 | Advanced: AI Document Understanding | ✅ | "Import from document" on the new-order form; receipt reading |
 | Advanced: AI Operational Insight | ✅ | AI briefing on `/manager` |
 | Real authentication + roles | ✅ | Supabase Auth, RLS, role-based portals, admin user management (`/admin/users`) |
+| Beyond the brief | ✅ | Two-factor authentication (Google / Microsoft Authenticator), order cancellation with reasons, tamper-evident audit chain, `npm run security:check` (96 attacks) |
 
 ---
 
@@ -191,7 +192,10 @@ See [docs/AGENTIC_ARCHITECTURE.md](docs/AGENTIC_ARCHITECTURE.md) for the full de
 
 | Capability | Implementation |
 |---|---|
-| **Ops Copilot** (`POST /api/ai/chat`, SSE) | `client.beta.messages.toolRunner` with Zod-validated `betaZodTool`s, streamed. The UI shows a live **agent trace**: each tool call with its inputs, row count and latency, then the streamed answer with clickable order chips. |
+| **Ops Copilot** (`POST /api/ai/chat`, SSE) | `client.beta.messages.toolRunner` with Zod-validated `betaZodTool`s, streamed into the floating **Sejuk Ops AI** window. The UI shows a live **agent trace**: each tool call with its inputs, row count and latency, then the streamed answer with clickable order chips. |
+| **Charts on demand** | After a ranking, comparison or trend the AI offers a chart. A `render_chart` tool (schema-validated, numbers only from tool results) draws it with Recharts in the chat: switch between ranking, bars, line and share, plus CSV export. |
+| **Acceptable-use policy** | `src/lib/ai/policy.ts` blocks prompt injection, requests to change data and requests for credentials before any model call, and caps each user at 20 questions per 10 minutes. Off-topic questions make the model call `decline_request`. Outcomes are logged as `blocked` or `refused`. |
+| **Saved conversations** | `ai_conversations` / `ai_messages`: private to the owner (RLS) and written only by the server. The model's context is rebuilt from the database, never from the browser. History panel with search, rename, delete and "As of" plus Refresh on reopened answers. 90-day retention. |
 | **Workflow Supervisor** | `evaluateRules()` (pure, unit-tested) then a structured AI review via `messages.parse` + `zodOutputFormat`, upserted into `ai_flags`. Triggered with `after()` when a technician completes a job; managers can also re-scan. |
 | **Document Understanding** (`POST /api/ai/extract`) | PDF (document block) or photo (image block) → structured `ExtractedOrderFields` with per-field confidence → pre-fills the order form, with AI-filled fields highlighted. The file type is checked from its bytes. There's a "Try a sample" PDF. |
 | **Receipt reading** | The technician's payment step reads the amount from the receipt photo and warns when it doesn't match the amount entered. |
@@ -211,7 +215,9 @@ See [docs/AGENTIC_ARCHITECTURE.md](docs/AGENTIC_ARCHITECTURE.md) for the full de
 
 **Supported query types:** job lists and counts filtered by technician, status, service, branch and date range; rankings and
 leaderboards; revenue and average ticket; reschedules; workload and overload; single-order drill-down; open anomaly flags; and
-follow-up questions in the same conversation (the last 10 turns are kept).
+follow-up questions in the same conversation (the server keeps the last 10 messages as context); charts of any ranking,
+comparison or trend. Off-topic questions (general knowledge, coding, weather), requests to change data and attempts to
+override the rules are declined and logged.
 
 **Model settings:** `claude-opus-5-5` with adaptive thinking. Effort is `low` for chat and extraction and `medium` for insights.
 Tool choice is left on `auto`. Server-side refusal fallback is on, the system prompt and tools are cached, and `stop_reason`
@@ -287,7 +293,7 @@ a template plus a `wa.me` link, and it fires no matter which client changes the 
 - Generated DB types (`supabase gen types`) and contract tests for every RPC.
 - Playwright end-to-end tests against a seeded preview database on every PR.
 - An evaluation set for the copilot (questions → expected SQL answers) run in CI.
-- Rate limits and per-user AI budgets.
+- Per-user AI token budgets (rate limits are in place) and an admin view of AI usage cost.
 - Observability (OpenTelemetry), audit-log retention policies, and PDPA-aligned PII handling.
 
 **How I used AI tools:** I used Claude Code as an agentic pair-programmer:

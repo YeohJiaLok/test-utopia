@@ -126,6 +126,18 @@ flowchart TB
 - **Row Level Security everywhere.** Technicians can only see and upload to their own jobs (and storage paths); office
   staff see everything. The server uses the user-scoped client by default; the service role is reserved for system
   writes such as AI logs.
+- **No role escape, proven by attack.** The role is enforced three times: the URL guard (`src/proxy.ts`), the server
+  (`requireUser` on every page, action and API route), and Postgres (RLS, `SECURITY DEFINER` workflow functions, column
+  grants). It comes only from `profiles.role`, never from the email address, editable user metadata or the request.
+  Least privilege: users only read through RLS. Writes go through the audited workflow functions, so not even an admin
+  can quietly edit a price. The only exceptions are column grants for marking notifications read and resolving AI flags
+  in your own name. `npm run security:check` signs in as a technician and runs 75 attacks, every one of which must be
+  blocked:
+  - edited and encoded URLs (`/ADMIN`, `/tech/..%2Fadmin`, …)
+  - forged and unsigned JWTs, and `user_metadata.role=admin`
+  - direct database API calls with the public key: self-promotion, forged audit events, other technicians' jobs, files
+    and staff directory, rewriting customer WhatsApp links
+  - office roles bypassing the workflow
 - **Notifications are data.** Triggers render the brief's WhatsApp template ("Hi {name}, Job {id} has been completed by
   Technician {name} at {time}…") into a `notifications` row with a `wa.me` deep link. They also notify the technician when
   a job is assigned and push in-app alerts to managers and accounts. Supabase Realtime delivers the alerts live (bell + toast).

@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:push": "supabase db push",
-    "db:seed": "tsx --env-file=.env.local scripts/seed.ts"
+    "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "security:check": "node --env-file=.env.local scripts/security-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.4.0",

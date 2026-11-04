@@ -20,6 +20,16 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
 - `order_events` is an append-only SHA-256 hash chain (`*_audit_integrity.sql`): never update it; only the service role may
   delete (demo reset), and the seed calls `reset_audit_chain()` after its wipe. `verify_audit_chain()` checks it.
 - Order search goes through `search_orders(p_query, p_limit)` (RLS-scoped, ranked, typo-tolerant) — don't hand-roll `ilike`.
+- **Security is enterprise grade at every layer — a user must never reach another role's portal or data by editing the
+  URL, the token, or by calling the database API directly with the public key.** Enforce the role in all three places:
+  `src/proxy.ts` (URL guard), `requireUser([...roles])` / `authorizeApi` (pages, actions, API routes) and Postgres
+  (RLS + SECURITY DEFINER workflow functions). Authorization comes only from `profiles.role` (mirrored to JWT
+  `app_metadata`), never from email/domain, `user_metadata`, query params or anything the browser sends.
+- Least privilege (`*_least_privilege.sql`): signed-in users READ through RLS; writes go through workflow functions or
+  explicit column grants (`notifications(status, read_at)`, `ai_flags` resolution fields). Technicians see only their own
+  profile/technician row. `anon` has no table access. New tables: enable RLS, add policies, and grant no write by default.
+- After any change to auth, routes, RLS, grants or functions run `npm run security:check` (dev server up): it signs in as
+  a technician and fires 75 escalation attacks; every one must report BLOCKED. Add a case for each new route/table/RPC.
 
 ## Next.js 16 specifics
 - `middleware` is now `src/proxy.ts`. `params` / `searchParams` are Promises.
@@ -45,4 +55,4 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
 - Dev server is shared while editing: never leave a broken import between saves (a build error overlays every page).
 
 ## Commands
-- `npm run dev` · `npm run typecheck` · `npm run lint` · `npm test` · `npm run db:seed`
+- `npm run dev` · `npm run typecheck` · `npm run lint` · `npm test` · `npm run db:seed` · `npm run security:check`

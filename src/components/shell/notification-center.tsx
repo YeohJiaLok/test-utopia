@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { BellOff, CheckCheck, CheckCircle2, ClipboardCheck, Loader2, MessageCircle, Wrench, XCircle } from "lucide-react";
+import { BellOff, CheckCheck, CheckCircle2, ClipboardCheck, Loader2, MessageCircle, RotateCcw, Wrench, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EASE } from "@/components/motion";
@@ -17,7 +17,8 @@ const ICON: Record<string, typeof Wrench> = {
   job_done_review: ClipboardCheck,
   job_assigned_in_app: Wrench,
   job_cancelled_in_app: XCircle,
-}
+  job_rework_in_app: RotateCcw,
+};
 
 function dayLabel(iso: string) {
   const d = new Date(iso);

@@ -2,7 +2,7 @@
 // readable in one place; regenerate with `supabase gen types` for exhaustive typing.
 
 export type AppRole = "admin" | "technician" | "manager";
-export type OrderStatus = "new" | "assigned" | "in_progress" | "job_done" | "reviewed" | "closed" | "cancelled";
+export type OrderStatus = "new" | "assigned" | "in_progress" | "rework" | "job_done" | "reviewed" | "closed" | "cancelled";
 export type AttachmentKind = "photo" | "video" | "pdf" | "receipt";
 export type PaymentMethod = "cash" | "card" | "bank_transfer" | "ewallet" | "unpaid";
 export type FlagSeverity = "low" | "medium" | "high";

@@ -47,7 +47,7 @@ export async function getMyJobs(technicianId: string | null) {
   let open = supabase
     .from("orders")
     .select(JOB_SELECT)
-    .in("status", ["assigned", "in_progress"])
+    .in("status", ["assigned", "in_progress", "rework"])
     .order("scheduled_at", { ascending: true, nullsFirst: false });
   let done = supabase
     .from("orders")
@@ -70,12 +70,13 @@ export async function getMyJobs(technicianId: string | null) {
   const upcoming: TechJob[] = [];
   const endOfToday = new Date(today.to).getTime();
   for (const j of openJobs) {
-    if (j.status === "in_progress" || !j.scheduled_at || new Date(j.scheduled_at).getTime() < endOfToday) active.push(j);
+    if (j.status !== "assigned" || !j.scheduled_at || new Date(j.scheduled_at).getTime() < endOfToday) active.push(j);
     else upcoming.push(j);
   }
-  // In-progress jobs float to the top, then by schedule.
+  // Sent-back (rework) jobs first, then jobs on site, then by schedule.
+  const RANK: Record<string, number> = { rework: 0, in_progress: 1, assigned: 2 };
   active.sort((a, b) => {
-    if (a.status !== b.status) return a.status === "in_progress" ? -1 : 1;
+    if (a.status !== b.status) return (RANK[a.status] ?? 3) - (RANK[b.status] ?? 3);
     return (a.scheduled_at ?? "").localeCompare(b.scheduled_at ?? "");
   });
 

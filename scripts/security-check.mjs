@@ -215,6 +215,19 @@ function leaked(r) {
       }
     }
   }
+  {
+    // Rework: only a manager sends a job back, and only the assigned technician resubmits it.
+    const { data: o, error: e } = await db.from("orders").update({ status: "rework" }).eq("id", ownOrder.id).select();
+    record("Workflow", "Set own order to Rework by direct UPDATE", !!e || (o ?? []).length === 0, e ? e.message.slice(0, 60) : `rows ${o?.length ?? 0}`);
+    const { error: e2 } = await db.rpc("review_job", { p_order_id: ownOrder.id, p_decision: "rework", p_notes: "Send my own job back" });
+    record("Workflow", "Technician sends a job to Rework (review_job)", !!e2, e2?.message.slice(0, 60));
+    const { data: theirs } = await svc.from("orders").select("id, order_no").eq("status", "rework").neq("assigned_technician_id", bennyTech.id).limit(1).maybeSingle();
+    if (theirs) {
+      const { error: e3 } = await db.rpc("complete_job", { p_order_id: theirs.id, p_work_done: "Resubmit someone else's rework" });
+      record("Workflow", `Resubmit another technician's Rework job ${theirs.order_no}`, !!e3, e3?.message.slice(0, 60));
+      if (!e3) console.error("!! complete_job accepted another technician's rework job", theirs.order_no);
+    }
+  }
 
   // ---------- Layer 5: storage ----------
   {

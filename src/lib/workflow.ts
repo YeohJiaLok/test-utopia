@@ -7,8 +7,11 @@ import type { AppRole, OrderStatus } from "@/lib/types";
  */
 /** The main lifecycle, in order (the status pipeline). Cancelled sits beside it. */
 export const ORDER_STATUSES: OrderStatus[] = ["new", "assigned", "in_progress", "job_done", "reviewed", "closed"];
-/** Every status, for filters and counts. */
-export const ALL_STATUSES: OrderStatus[] = [...ORDER_STATUSES, "cancelled"];
+/**
+ * Every status, for filters and counts. Rework (sent back by the manager) is a loop between
+ * Job Done and In Progress; Cancelled is a terminal side status.
+ */
+export const ALL_STATUSES: OrderStatus[] = ["new", "assigned", "in_progress", "rework", "job_done", "reviewed", "closed", "cancelled"];
 
 export const STATUS_META: Record<
   OrderStatus,
@@ -17,13 +20,14 @@ export const STATUS_META: Record<
   new: { label: "New", short: "New", description: "Created, awaiting technician assignment", tone: "slate" },
   assigned: { label: "Assigned", short: "Assigned", description: "Technician assigned, not started", tone: "blue" },
   in_progress: { label: "In Progress", short: "On site", description: "Technician is working on site", tone: "amber" },
+  rework: { label: "Rework", short: "Rework", description: "Sent back by the manager, technician to fix and resubmit", tone: "orange" },
   job_done: { label: "Job Done", short: "Done", description: "Completed, awaiting manager review", tone: "violet" },
   reviewed: { label: "Reviewed", short: "Reviewed", description: "Approved by manager", tone: "teal" },
   closed: { label: "Closed", short: "Closed", description: "Finalised and archived", tone: "green" },
   cancelled: { label: "Cancelled", short: "Cancelled", description: "Cancelled before the work was done", tone: "red" },
 };
 
-export type StatusTone = "slate" | "blue" | "amber" | "violet" | "teal" | "green" | "red";
+export type StatusTone = "slate" | "blue" | "amber" | "orange" | "violet" | "teal" | "green" | "red";
 
 export type WorkflowAction =
   | "assign"
@@ -50,9 +54,10 @@ export const TRANSITIONS: TransitionRule[] = [
   { action: "reassign", from: ["assigned"], to: "assigned", roles: ["admin"] },
   { action: "start", from: ["assigned"], to: "in_progress", roles: ["technician"], ownerOnly: true },
   // Assigned → In Progress → Job Done: the job must be started on site first (complete_job enforces it).
-  { action: "complete", from: ["in_progress"], to: "job_done", roles: ["technician"], ownerOnly: true },
+  // Rework → Job Done is the technician resubmitting a job the manager sent back.
+  { action: "complete", from: ["in_progress", "rework"], to: "job_done", roles: ["technician"], ownerOnly: true },
   { action: "review", from: ["job_done"], to: "reviewed", roles: ["manager"] },
-  { action: "rework", from: ["job_done"], to: "in_progress", roles: ["manager"] },
+  { action: "rework", from: ["job_done"], to: "rework", roles: ["manager"] },
   { action: "close", from: ["reviewed"], to: "closed", roles: ["manager", "admin"] },
   { action: "reschedule", from: ["new", "assigned", "in_progress"], to: null, roles: ["admin", "technician"], ownerOnly: true },
   { action: "cancel", from: ["new", "assigned", "in_progress"], to: "cancelled", roles: ["admin"] },
@@ -74,8 +79,9 @@ export function availableActions(ctx: { status: OrderStatus; role: AppRole; isAs
   return TRANSITIONS.filter((t) => canPerform(t.action, ctx)).map((t) => t.action);
 }
 
+/** Position on the pipeline. Rework sits at the In Progress step (the work is being redone). */
 export function statusIndex(status: OrderStatus) {
-  return ORDER_STATUSES.indexOf(status);
+  return ORDER_STATUSES.indexOf(status === "rework" ? "in_progress" : status);
 }
 
 /** A job counts as running late this long after its slot if nobody has started it. */
@@ -84,7 +90,11 @@ export function lateCutoff(now: Date = new Date()) {
   return new Date(now.getTime() - LATE_GRACE_MINUTES * 60_000).toISOString();
 }
 
-export const OPEN_STATUSES: OrderStatus[] = ["new", "assigned", "in_progress"];
+export const OPEN_STATUSES: OrderStatus[] = ["new", "assigned", "in_progress", "rework"];
+/** Board columns: the pipeline plus Rework beside In Progress. */
+export const BOARD_STATUSES: OrderStatus[] = ["new", "assigned", "in_progress", "rework", "job_done", "reviewed", "closed"];
+/** Work a technician is holding right now (their active list, workload counts). */
+export const TECH_ACTIVE_STATUSES: OrderStatus[] = ["assigned", "in_progress", "rework"];
 export const COMPLETED_STATUSES: OrderStatus[] = ["job_done", "reviewed", "closed"];
 
 export const EVENT_LABELS: Record<string, string> = {
@@ -95,6 +105,8 @@ export const EVENT_LABELS: Record<string, string> = {
   job_completed: "Job completed",
   job_reviewed: "Reviewed & approved",
   rework_requested: "Sent back for rework",
+  job_resubmitted: "Resubmitted after rework",
+  status_migrated: "Status corrected by system",
   job_closed: "Order closed",
   job_rescheduled: "Rescheduled",
   order_cancelled: "Order cancelled",

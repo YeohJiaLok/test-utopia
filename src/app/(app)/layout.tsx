@@ -43,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         case "technician":
           return {
             jobs: await count(
-              supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["assigned", "in_progress"]),
+              supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["assigned", "in_progress", "rework"]),
             ),
           };
       }

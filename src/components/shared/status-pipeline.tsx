@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Check, XCircle } from "lucide-react";
+import { Check, RotateCcw, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CANCEL_REASON_LABELS, ORDER_STATUSES, STATUS_META, statusIndex } from "@/lib/workflow";
 import type { OrderStatus } from "@/lib/types";
@@ -49,6 +49,9 @@ export function StatusPipeline({
         {ORDER_STATUSES.map((s, i) => {
           const done = i < current;
           const active = i === current;
+          // Rework is shown on the In Progress step: the work is being redone.
+          const rework = active && status === "rework";
+          const meta = STATUS_META[rework ? "rework" : s];
           return (
             <li key={s} className="flex flex-col items-center gap-1.5 text-center">
               <motion.span
@@ -58,24 +61,26 @@ export function StatusPipeline({
                 className={cn(
                   "relative z-10 flex size-7 items-center justify-center rounded-full border-2 text-[11px] font-semibold transition-colors",
                   done && "border-transparent bg-primary text-primary-foreground",
-                  active && "animate-pulse-ring border-primary bg-background text-primary",
+                  active && !rework && "animate-pulse-ring border-primary bg-background text-primary",
+                  rework && "border-orange-500 bg-background text-orange-600 dark:text-orange-400",
                   !done && !active && "border-border bg-background text-muted-foreground",
                 )}
               >
-                {done ? <Check className="size-3.5" strokeWidth={3} /> : i + 1}
+                {done ? <Check className="size-3.5" strokeWidth={3} /> : rework ? <RotateCcw className="size-3.5" strokeWidth={2.5} /> : i + 1}
               </motion.span>
               <span
                 className={cn(
                   "text-[11px] leading-tight font-medium",
-                  active ? "text-foreground" : "text-muted-foreground",
+                  rework ? "text-orange-700 dark:text-orange-300" : active ? "text-foreground" : "text-muted-foreground",
                   compact && "hidden sm:block",
                 )}
               >
                 {/* Short labels on phones ("On site", "Done") so six steps fit without wrapping. */}
-                <span className="sm:hidden">{STATUS_META[s].short}</span>
-                <span className="hidden sm:inline">{STATUS_META[s].label}</span>
+                <span className="sm:hidden">{meta.short}</span>
+                <span className="hidden sm:inline">{meta.label}</span>
               </span>
-              {!compact && timestamps?.[s] && (
+              {/* Later steps show no time (a job sent back for rework keeps its old Job Done time). */}
+              {!compact && i <= current && timestamps?.[s] && (
                 <span className="text-muted-foreground hidden text-[10px] tabular-nums md:block">
                   {new Date(timestamps[s]!).toLocaleString("en-MY", {
                     timeZone: "Asia/Kuala_Lumpur",

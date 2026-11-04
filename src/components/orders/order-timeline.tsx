@@ -27,7 +27,8 @@ const ICONS: Record<string, { icon: LucideIcon; tone: string }> = {
   job_started: { icon: PlayCircle, tone: "bg-amber-500/12 text-amber-600 dark:text-amber-300" },
   job_completed: { icon: CheckCircle2, tone: "bg-violet-500/10 text-violet-600 dark:text-violet-300" },
   job_reviewed: { icon: ClipboardCheck, tone: "bg-teal-500/10 text-teal-600 dark:text-teal-300" },
-  rework_requested: { icon: RotateCcw, tone: "bg-red-500/10 text-red-600 dark:text-red-300" },
+  rework_requested: { icon: RotateCcw, tone: "bg-orange-500/12 text-orange-600 dark:text-orange-300" },
+  job_resubmitted: { icon: CheckCircle2, tone: "bg-violet-500/10 text-violet-600 dark:text-violet-300" },
   job_closed: { icon: Lock, tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300" },
   order_cancelled: { icon: XCircle, tone: "bg-red-500/10 text-red-600 dark:text-red-300" },
   job_rescheduled: { icon: CalendarClock, tone: "bg-orange-500/10 text-orange-600 dark:text-orange-300" },
@@ -40,6 +41,7 @@ function describe(e: OrderEvent): string | null {
     case "technician_reassigned":
       return p.technician_name ? `Assigned to ${p.technician_name}` : null;
     case "job_completed":
+    case "job_resubmitted":
       return [
         p.final_amount !== undefined ? `Final ${formatMYR(Number(p.final_amount))}` : null,
         p.attachments !== undefined ? `${p.attachments} file(s)` : null,

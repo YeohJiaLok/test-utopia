@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availableActions, canPerform, ORDER_STATUSES, statusIndex } from "@/lib/workflow";
+import { ALL_STATUSES, availableActions, canPerform, ORDER_STATUSES, statusIndex, TRANSITIONS } from "@/lib/workflow";
 
 describe("workflow state machine (UI mirror of the DB rules)", () => {
   it("orders statuses along the lifecycle", () => {
@@ -59,5 +59,21 @@ describe("workflow state machine (UI mirror of the DB rules)", () => {
     expect(canPerform("complete", { status: "assigned", role: "technician", isAssignedTechnician: true })).toBe(false);
     expect(canPerform("complete", { status: "in_progress", role: "technician", isAssignedTechnician: true })).toBe(true);
     expect(canPerform("complete", { status: "in_progress", role: "technician", isAssignedTechnician: false })).toBe(false);
+  });
+
+  it("sends a reviewed job back as Rework, not In Progress", () => {
+    expect(TRANSITIONS.find((t) => t.action === "rework")?.to).toBe("rework");
+    expect(canPerform("rework", { status: "job_done", role: "manager", isAssignedTechnician: false })).toBe(true);
+    expect(canPerform("rework", { status: "job_done", role: "technician", isAssignedTechnician: true })).toBe(false);
+    expect(ALL_STATUSES).toContain("rework");
+    expect(ORDER_STATUSES).not.toContain("rework");
+    expect(statusIndex("rework")).toBe(statusIndex("in_progress"));
+  });
+
+  it("lets only the assigned technician resubmit a Rework job", () => {
+    expect(availableActions({ status: "rework", role: "technician", isAssignedTechnician: true })).toEqual(["complete"]);
+    expect(canPerform("complete", { status: "rework", role: "technician", isAssignedTechnician: false })).toBe(false);
+    expect(canPerform("complete", { status: "rework", role: "admin", isAssignedTechnician: false })).toBe(false);
+    expect(availableActions({ status: "rework", role: "manager", isAssignedTechnician: false })).toEqual([]);
   });
 });

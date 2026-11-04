@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,6 +44,8 @@ export interface CompleteWizardProps {
   initialReceipt: ExistingReceipt | null;
   /** Set when the job is already Job Done / Reviewed / Closed. */
   completed: CompletionOutcome | null;
+  /** Set when the manager sent the job back: their note, and the previous submission to edit. */
+  rework?: { note: string | null; by: string | null; previous: Draft } | null;
 }
 
 const slide = {
@@ -88,9 +90,10 @@ function WizardSkeleton() {
   );
 }
 
-function Wizard({ order, technicianName, userId, initialMedia, initialReceipt, completed }: CompleteWizardProps) {
+function Wizard({ order, technicianName, userId, initialMedia, initialReceipt, completed, rework }: CompleteWizardProps) {
   const [restored] = useState(() => (completed ? null : loadDraft(order.id)));
-  const [draft, setDraft] = useState<Draft>(() => restored ?? EMPTY_DRAFT);
+  // Rework: start from what was submitted last time, so only the fix needs changing.
+  const [draft, setDraft] = useState<Draft>(() => restored ?? rework?.previous ?? EMPTY_DRAFT);
   const [direction, setDirection] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<CompletionOutcome | null>(null);
@@ -217,7 +220,7 @@ function Wizard({ order, technicianName, userId, initialMedia, initialReceipt, c
   }
 
   if (done) {
-    return <SuccessScreen order={order} outcome={done} technicianName={technicianName} fresh={!!outcome} />;
+    return <SuccessScreen order={order} outcome={done} technicianName={technicianName} fresh={!!outcome} resubmitted={!!outcome && !!rework} />;
   }
 
   const last = step === STEPS.length - 1;
@@ -279,7 +282,7 @@ function Wizard({ order, technicianName, userId, initialMedia, initialReceipt, c
               <X className="size-5" />
             </Link>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">Complete job</p>
+              <p className="truncate text-sm font-semibold">{rework ? "Fix & resubmit" : "Complete job"}</p>
               <p className="text-muted-foreground truncate font-mono text-xs">
                 {order.orderNo} · {order.customerName}
               </p>
@@ -333,6 +336,17 @@ function Wizard({ order, technicianName, userId, initialMedia, initialReceipt, c
             })}
           </ol>
         </div>
+
+        {rework && step === 0 && (
+          <div className="mt-4 flex gap-3 rounded-2xl border border-orange-500/25 bg-orange-500/8 p-4 text-sm" role="note">
+            <RotateCcw className="mt-0.5 size-5 shrink-0 text-orange-600 dark:text-orange-400" />
+            <div className="min-w-0">
+              <p className="font-semibold text-orange-700 dark:text-orange-300">Sent back{rework.by ? ` by ${rework.by}` : ""}</p>
+              <p className="text-foreground/85 mt-0.5 break-words">{rework.note ?? "The manager asked for this job to be redone."}</p>
+              <p className="text-muted-foreground mt-1.5 text-xs">Your last submission is filled in. Change what was asked, add photos if needed, then resubmit.</p>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-clip pt-5 lg:mt-4 lg:rounded-2xl lg:border lg:bg-card lg:p-8 lg:shadow-xs">
           <AnimatePresence mode="wait" custom={direction} initial={false}>

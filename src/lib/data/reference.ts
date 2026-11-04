@@ -23,7 +23,7 @@ export async function getTechniciansWithLoad(): Promise<TechnicianWithLoad[]> {
   const supabase = await createClient();
   const [{ data: techs, error }, { data: open }] = await Promise.all([
     supabase.from("technicians").select("*, branch:branches(name)").eq("active", true).order("name"),
-    supabase.from("orders").select("assigned_technician_id").in("status", ["assigned", "in_progress"]),
+    supabase.from("orders").select("assigned_technician_id").in("status", ["assigned", "in_progress", "rework"]),
   ]);
   if (error) throw error;
   const load = new Map<string, number>();

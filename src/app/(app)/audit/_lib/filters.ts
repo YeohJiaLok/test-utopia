@@ -50,6 +50,7 @@ export const ACTIONS: Record<AuditTab, readonly string[]> = {
     "job_completed",
     "job_reviewed",
     "rework_requested",
+    "job_resubmitted",
     "job_closed",
     "job_rescheduled",
     "order_cancelled",

@@ -23,7 +23,7 @@ export async function getTabCounts() {
     supabase
       .from("orders")
       .select("id, reviews!inner(decision)", { count: "exact", head: true })
-      .eq("status", "in_progress")
+      .eq("status", "rework")
       .eq("reviews.decision", "rework"),
   ]);
   return { awaiting: awaiting.count ?? 0, close: close.count ?? 0, "sent-back": sentBack.count ?? 0 } as Record<Exclude<ReviewTab, "history">, number>;
@@ -105,7 +105,7 @@ export async function getSentBack(): Promise<SentBackItem[]> {
     .select(
       "id, order_no, customer_name, service_type:service_types(name), technician:technicians(name), review:reviews!inner(decision, notes, created_at, manager:profiles(full_name))",
     )
-    .eq("status", "in_progress")
+    .eq("status", "rework")
     .eq("review.decision", "rework")
     .limit(300);
   if (error) throw new Error(`Could not load jobs sent back: ${error.message}`);

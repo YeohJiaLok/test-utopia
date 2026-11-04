@@ -8,6 +8,9 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
 - **Database is the source of truth for the workflow.** Orders move `new → assigned → in_progress → job_done → reviewed → closed`
   only through SQL functions (`supabase/migrations/*_workflow.sql`): `create_order`, `assign_technician`, `start_job`,
   `complete_job`, `review_job`, `close_job`, `reschedule_order`, `cancel_order`. Call them with `supabase.rpc(...)`.
+  `rework` is a loop status: `review_job(…,'rework')` (note required) moves Job Done → Rework and alerts the technician
+  (`notify_on_rework`); `complete_job` from Rework resubmits (`job_resubmitted` event, no second customer WhatsApp).
+  Like `cancelled` it is not in `ORDER_STATUSES` (the pipeline shows it on the In Progress step) but is in `ALL_STATUSES`.
   `cancelled` is a terminal side status (admin only, from new/assigned/in_progress, reason required; triggers notify the
   technician + customer); it is not in `ORDER_STATUSES` (the pipeline) but is in `ALL_STATUSES`. `create_order` requires a
   technician. A trigger rejects direct
@@ -51,7 +54,7 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
   assigned_technician_id = (select current_technician_id()))` (`*_rls_performance.sql`). `requireUser` loads the
   user with one `session_context()` call.
 - After any change to auth, routes, RLS, grants or functions run `npm run security:check` (dev server up): it signs in as
-  a technician and fires 96 escalation attacks (incl. 2FA bypasses); every one must report BLOCKED. Add a case for each new route/table/RPC.
+  a technician and fires 100 escalation attacks (incl. 2FA bypasses); every one must report BLOCKED. Add a case for each new route/table/RPC.
 
 ## Next.js 16 specifics
 - `middleware` is now `src/proxy.ts`. `params` / `searchParams` are Promises.

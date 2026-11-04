@@ -29,7 +29,7 @@ export interface UnlinkedTechnician {
   skills: string[];
 }
 
-const OPEN = ["assigned", "in_progress"];
+const OPEN = ["assigned", "in_progress", "rework"];
 
 /** Every account with role, status, branch, last sign-in and (for technicians) open jobs. */
 export async function getUsers(): Promise<UserRow[]> {

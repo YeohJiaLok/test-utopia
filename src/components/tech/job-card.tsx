@@ -31,10 +31,16 @@ export function JobCard({ job, highlight }: { job: TechJob; highlight?: boolean 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-muted-foreground font-mono text-xs">{job.order_no}</span>
-              {highlight && (
-                <span className="bg-primary/10 text-primary inline-flex h-5 items-center rounded-full px-2 text-[10px] font-bold tracking-wider uppercase">
-                  {job.status === "in_progress" ? "On site now" : "Up next"}
+              {job.status === "rework" ? (
+                <span className="inline-flex h-5 items-center rounded-full bg-orange-500/12 px-2 text-[10px] font-bold tracking-wider text-orange-700 uppercase dark:text-orange-300">
+                  Sent back · fix &amp; resubmit
                 </span>
+              ) : (
+                highlight && (
+                  <span className="bg-primary/10 text-primary inline-flex h-5 items-center rounded-full px-2 text-[10px] font-bold tracking-wider uppercase">
+                    {job.status === "in_progress" ? "On site now" : "Up next"}
+                  </span>
+                )
               )}
             </div>
             <h3 className="mt-1 truncate text-base font-semibold tracking-tight">{job.service_type?.name ?? "Aircon service"}</h3>

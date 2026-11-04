@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { ORDER_SELECT, normalizeOrder } from "@/lib/data/orders";
-import { ALL_STATUSES, COMPLETED_STATUSES, ORDER_STATUSES, lateCutoff } from "@/lib/workflow";
+import { ALL_STATUSES, BOARD_STATUSES, COMPLETED_STATUSES, lateCutoff } from "@/lib/workflow";
 import { getRange } from "@/lib/time";
 import type { OrderStatus, OrderWithRelations, TechnicianKpi } from "@/lib/types";
 import type { OrderFilters } from "@/components/admin/orders-url";
@@ -65,7 +65,7 @@ export async function getOrderBoard(f: OrderFilters) {
   const supabase = await createClient();
   const [columns, counts] = await Promise.all([
     Promise.all(
-      ORDER_STATUSES.map(async (status) => {
+      BOARD_STATUSES.map(async (status) => {
         const { data } = await ordersQuery(supabase, ORDER_SELECT, f, status)
           .order("updated_at", { ascending: false })
           .limit(BOARD_COLUMN_LIMIT);

@@ -18,7 +18,7 @@ Every module in the brief is implemented, plus all three optional advanced AI ch
 | Advanced: AI Document Understanding | ✅ | "Import from document" on the new-order form; receipt reading |
 | Advanced: AI Operational Insight | ✅ | AI briefing on `/manager` |
 | Real authentication + roles | ✅ | Supabase Auth, RLS, role-based portals, admin user management (`/admin/users`) |
-| Beyond the brief | ✅ | Two-factor authentication (Google / Microsoft Authenticator), order cancellation with reasons, tamper-evident audit chain, `npm run security:check` (96 attacks) |
+| Beyond the brief | ✅ | Two-factor authentication (Google / Microsoft Authenticator), order cancellation with reasons, tamper-evident audit chain, `npm run security:check` (100 attacks) |
 
 ---
 
@@ -116,6 +116,10 @@ flowchart TB
   - Only an **Admin** can create orders or assign and reassign technicians.
   - Only the **assigned Technician** can start or complete a job.
   - Only a **Manager** can review (approve or send back for rework); a Manager or Admin can close.
+  - **Rework** is its own status (Job Done → Rework → Job Done). Sending a job back requires a note; the technician is
+    alerted at once (in-app bell + WhatsApp with the note), sees it first in their list, and resubmits from a form
+    pre-filled with their last submission. The manager is told "resubmitted after rework"; the customer is not asked for
+    feedback twice. `orders.rework_count` keeps how often each job was sent back.
   - All actions are **traceable** in `order_events` (actor, role, from → to, payload) and shown as a timeline.
 - **Tamper-evident audit trail.** `order_events` is a SHA-256 hash chain: each event stores the previous event's hash and
   its own hash over its full content. Updates are rejected for everyone (even the service role); `verify_audit_chain()`
@@ -142,7 +146,7 @@ flowchart TB
   grants). It comes only from `profiles.role`, never from the email address, editable user metadata or the request.
   Least privilege: users only read through RLS. Writes go through the audited workflow functions, so not even an admin
   can quietly edit a price. The only exceptions are column grants for marking notifications read and resolving AI flags
-  in your own name. `npm run security:check` signs in as a technician and runs 96 attacks, every one of which must be
+  in your own name. `npm run security:check` signs in as a technician and runs 100 attacks, every one of which must be
   blocked:
   - edited and encoded URLs (`/ADMIN`, `/tech/..%2Fadmin`, …)
   - forged and unsigned JWTs, and `user_metadata.role=admin`

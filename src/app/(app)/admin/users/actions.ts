@@ -70,7 +70,7 @@ async function openJobs(admin: Admin, technicianId: string | undefined) {
     .from("orders")
     .select("id", { count: "exact", head: true })
     .eq("assigned_technician_id", technicianId)
-    .in("status", ["assigned", "in_progress"]);
+    .in("status", ["assigned", "in_progress", "rework"]);
   return count ?? 0;
 }
 

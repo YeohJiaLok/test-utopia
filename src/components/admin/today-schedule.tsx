@@ -14,6 +14,7 @@ import type { OrderWithRelations } from "@/lib/types";
 const DOT: Record<string, string> = {
   assigned: "bg-blue-500",
   in_progress: "bg-amber-500 animate-pulse",
+  rework: "bg-orange-500 animate-pulse",
   job_done: "bg-violet-500",
   reviewed: "bg-teal-500",
   closed: "bg-emerald-500",

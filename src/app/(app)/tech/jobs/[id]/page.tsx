@@ -57,13 +57,14 @@ export default async function TechJobPage({
   if (!detail) notFound();
 
   const { order, completion, attachments, receiptUrl, events, reschedules, review, notifications } = detail;
-  const open = order.status === "assigned" || order.status === "in_progress";
+  const open = order.status === "assigned" || order.status === "in_progress" || order.status === "rework";
   const done = !open && !!completion;
   const service = order.service_type?.name ?? "Aircon service";
   const techName = order.technician?.name ?? user.fullName;
   const feedback = notifications.find((n) => n.template === "job_done_customer_feedback" && n.deep_link);
   const countdown = order.status === "assigned" ? countdownLabel(order.scheduled_at) : null;
-  const rework = order.status === "in_progress" && review?.decision === "rework" ? review : null;
+  const rework = order.status === "rework" && review?.decision === "rework" ? review : null;
+  const reworkBy = rework ? ([...events].reverse().find((e) => e.action === "rework_requested")?.actor_name ?? null) : null;
 
   return (
     <div>
@@ -137,10 +138,10 @@ export default async function TechJobPage({
           )}
           {rework && (
             <StaggerItem>
-              <div className="flex gap-3 rounded-2xl border border-red-500/25 bg-red-500/8 p-4 text-sm">
-                <RotateCcw className="mt-0.5 size-5 shrink-0 text-red-600 dark:text-red-400" />
+              <div className="flex gap-3 rounded-2xl border border-orange-500/25 bg-orange-500/8 p-4 text-sm" role="note">
+                <RotateCcw className="mt-0.5 size-5 shrink-0 text-orange-600 dark:text-orange-400" />
                 <div>
-                  <p className="font-semibold text-red-700 dark:text-red-300">Sent back for rework</p>
+                  <p className="font-semibold text-orange-700 dark:text-orange-300">Sent back for rework{reworkBy ? ` by ${reworkBy}` : ""}</p>
                   <p className="text-foreground/80 mt-0.5">{rework.notes ?? "The manager asked for this job to be redone."}</p>
                 </div>
               </div>

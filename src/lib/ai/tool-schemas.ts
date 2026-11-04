@@ -7,7 +7,7 @@
 import { z } from "zod";
 import { MAX_TOOL_ROWS } from "@/lib/ai/catalogue";
 
-export const ORDER_STATUSES = ["new", "assigned", "in_progress", "job_done", "reviewed", "closed", "cancelled"] as const;
+export const ORDER_STATUSES = ["new", "assigned", "in_progress", "rework", "job_done", "reviewed", "closed", "cancelled"] as const;
 export const COMPLETED_STATUSES = ["job_done", "reviewed", "closed"] as const;
 export const DATE_FIELDS = ["completed_at", "created_at", "scheduled_at"] as const;
 export const GROUP_BY = ["technician", "status", "service", "branch", "day"] as const;

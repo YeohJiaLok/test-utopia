@@ -38,7 +38,8 @@ export function summarizePayload(action: string, payload: Record<string, unknown
     }
     case "order_cancelled":
       return [p.reason_label ? String(p.reason_label) : null, p.note ? `“${String(p.note)}”` : null].filter(Boolean).join(" · ") || null;
-    case "job_completed": {
+    case "job_completed":
+    case "job_resubmitted": {
       const amount = p.final_amount ?? p.payment_amount;
       const method = typeof p.payment_method === "string" ? (PAYMENT_METHOD_LABELS[p.payment_method] ?? p.payment_method) : null;
       return [amount !== undefined && formatMYR(Number(amount)), method, p.attachments !== undefined && `${p.attachments} photos`]

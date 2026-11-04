@@ -47,7 +47,10 @@ function AnimatedCheck({ burst }: { burst: boolean }) {
           <motion.span
             key={i}
             aria-hidden
-            className={cn("absolute rounded-full", p.alt ? "bg-brand-2" : "bg-brand")}
+            className={cn(
+              "absolute rounded-full",
+              p.alt ? "bg-brand-2" : "bg-brand",
+            )}
             style={{ width: p.size, height: p.size }}
             initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
             animate={{ x: p.x, y: p.y, scale: [0, 1, 0.6], opacity: [0, 1, 0] }}
@@ -98,12 +101,15 @@ export function SuccessScreen({
   outcome,
   technicianName,
   fresh,
+  resubmitted = false,
 }: {
   order: WizardOrder;
   outcome: CompletionOutcome;
   technicianName: string;
   /** true right after submitting; false when opening an already-completed job */
   fresh: boolean;
+  /** Rework resubmission: back to the manager; the customer was already asked for feedback. */
+  resubmitted?: boolean;
 }) {
   const href =
     outcome.feedback?.deepLink ??
@@ -132,40 +138,69 @@ export function SuccessScreen({
         className="mt-5 w-full space-y-6"
       >
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{fresh ? "Job completed!" : "This job is complete"}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {resubmitted
+              ? "Resubmitted for review"
+              : fresh
+                ? "Job completed!"
+                : "This job is complete"}
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             {order.orderNo} · {order.customerName}
           </p>
         </div>
 
         <div className="bg-gradient-brand shadow-brand/25 relative overflow-hidden rounded-2xl p-5 text-white shadow-lg">
-          <div className="pointer-events-none absolute -top-12 -right-12 size-40 rounded-full bg-white/10 blur-2xl" aria-hidden />
+          <div
+            className="pointer-events-none absolute -top-12 -right-12 size-40 rounded-full bg-white/10 blur-2xl"
+            aria-hidden
+          />
           <p className="text-xs font-medium text-white/85">Final amount</p>
           <p className="mt-1 text-4xl font-semibold tracking-tight tabular-nums">
-            {fresh ? <CountUp value={outcome.finalAmount} format={money} /> : formatMYR(outcome.finalAmount)}
+            {fresh ? (
+              <CountUp value={outcome.finalAmount} format={money} />
+            ) : (
+              formatMYR(outcome.finalAmount)
+            )}
           </p>
-          <p className="mt-2 text-xs text-white/85">Marked Job Done · {formatDateTime(outcome.completedAt)}</p>
+          <p className="mt-2 text-xs text-white/85">
+            Marked Job Done · {formatDateTime(outcome.completedAt)}
+          </p>
         </div>
 
-        <div className="space-y-2">
-          <WhatsAppButton
-            href={href}
-            notificationId={outcome.feedback?.id}
-            className="h-13 w-full rounded-xl text-[15px] shadow-md shadow-emerald-500/20"
-          >
-            Send feedback request to customer
-          </WhatsAppButton>
-          <p className="text-muted-foreground text-xs">Opens WhatsApp with the message already written for you.</p>
-        </div>
+        {resubmitted ? (
+          <p className="bg-card text-muted-foreground rounded-2xl border p-4 text-left text-sm shadow-xs">
+            The manager has been told the fix is done and will review it again.
+            The customer already received the feedback request, so nothing is
+            sent to them this time.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <WhatsAppButton
+              href={href}
+              notificationId={outcome.feedback?.id}
+              className="h-13 w-full rounded-xl text-[15px] shadow-md shadow-emerald-500/20"
+            >
+              Send feedback request to customer
+            </WhatsAppButton>
+            <p className="text-muted-foreground text-xs">
+              Opens WhatsApp with the message already written for you.
+            </p>
+          </div>
+        )}
 
-        {fresh && (
+        {fresh && !resubmitted && (
           <ul className="bg-card divide-y rounded-2xl border text-left text-sm shadow-xs">
             {NEXT_STEPS.map(({ icon: Icon, text }, i) => (
               <motion.li
                 key={text}
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.35, ease: EASE, delay: 0.9 + i * 0.1 }}
+                transition={{
+                  duration: 0.35,
+                  ease: EASE,
+                  delay: 0.9 + i * 0.1,
+                }}
                 className="flex items-center gap-3 px-4 py-3"
               >
                 <span className="bg-accent text-primary flex size-8 shrink-0 items-center justify-center rounded-lg">
@@ -178,12 +213,21 @@ export function SuccessScreen({
         )}
 
         <div className="space-y-1">
-          <Link href="/tech" className={cn(buttonVariants({ variant: "outline" }), "h-12 w-full rounded-xl text-[15px]")}>
+          <Link
+            href="/tech"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "h-12 w-full rounded-xl text-[15px]",
+            )}
+          >
             <ArrowLeft className="size-4" /> Back to my jobs
           </Link>
           <Link
             href={`/tech/jobs/${order.id}`}
-            className={cn(buttonVariants({ variant: "ghost" }), "text-muted-foreground h-11 w-full rounded-xl")}
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "text-muted-foreground h-11 w-full rounded-xl",
+            )}
           >
             <FileCheck2 className="size-4" /> View job summary
           </Link>

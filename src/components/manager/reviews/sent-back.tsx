@@ -26,7 +26,7 @@ export function SentBack({ items }: { items: SentBackItem[] }) {
               {i.orderNo}
             </Link>
             <span className="truncate text-sm font-medium">{i.customer}</span>
-            <StatusBadge status="in_progress" />
+            <StatusBadge status="rework" />
             <span className="text-muted-foreground ml-auto text-xs" title={formatDateTime(i.sentAt)} suppressHydrationWarning>
               Sent back {formatRelative(i.sentAt)} by {i.sentBy}
             </span>

@@ -401,10 +401,6 @@ function OnView({ status, onDisable }: { status: MfaStatus; onDisable: () => voi
           <dt className="text-muted-foreground">Turned on</dt>
           <dd className="font-medium">{status.enabledAt ? formatDateTime(status.enabledAt) : "—"}</dd>
         </div>
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <dt className="text-muted-foreground">Lost your phone?</dt>
-          <dd className="text-right text-xs">Ask an administrator to reset it</dd>
-        </div>
       </dl>
       <div className="border-destructive/25 mt-auto space-y-3 rounded-xl border p-4">
         <div>

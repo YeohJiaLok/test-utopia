@@ -17,7 +17,10 @@ export type UserAdminAction =
   | "role_changed"
   | "user_deactivated"
   | "user_reactivated"
-  | "password_reset";
+  | "password_reset"
+  | "mfa_enabled"
+  | "mfa_disabled"
+  | "mfa_reset";
 
 export interface UserAdminEventRow {
   id: number;

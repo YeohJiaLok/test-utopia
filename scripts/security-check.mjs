@@ -5,6 +5,20 @@
 // anything an attack manages to alter is restored with the service role.
 // Usage: npm run security:check     (exit code 1 if any attack gets through)
 import { createClient } from "@supabase/supabase-js";
+import crypto from "node:crypto";
+
+/** RFC 6238 TOTP (what Google / Microsoft Authenticator compute), for the 2FA attacks. */
+function totp(secret, t = Date.now()) {
+  const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  for (const c of secret.replace(/=+$/, "").toUpperCase()) bits += A.indexOf(c).toString(2).padStart(5, "0");
+  const key = Buffer.from((bits.match(/.{8}/g) ?? []).map((b) => parseInt(b, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(t / 30000)));
+  const h = crypto.createHmac("sha1", key).update(counter).digest();
+  const o = h[h.length - 1] & 0xf;
+  return String((h.readUInt32BE(o) & 0x7fffffff) % 1e6).padStart(6, "0");
+}
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -157,6 +171,7 @@ function leaked(r) {
     ["verify_audit_chain", {}],
     ["sync_order_no_seq", {}],
     ["peek_next_order_no", {}],
+    ["mfa_enrolled_users", {}],
   ];
   for (const [fn, args] of rpcs) {
     const { data, error: e } = await db.rpc(fn, args);
@@ -216,6 +231,62 @@ function leaked(r) {
     record("Office", `${label}: rewrite AI supervisor findings`, (f ?? []).length === 0, `rows ${f?.length ?? 0}`);
     const { data: p } = await c.from("profiles").update({ role: "admin" }).eq("email", "benny.tech@sejuk.com").select();
     record("Office", `${label}: change a role outside audited user admin`, (p ?? []).length === 0, `rows ${p?.length ?? 0}`);
+  }
+
+  // ---------- Layer 7: two-factor authentication (password stolen, no phone) ----------
+  {
+    const email = "siva.tech@sejuk.com";
+    const { data: who } = await svc.from("profiles").select("id").eq("email", email).single();
+    const purge = async () => {
+      const { data } = await svc.auth.admin.mfa.listFactors({ userId: who.id });
+      for (const f of data?.factors ?? []) await svc.auth.admin.mfa.deleteFactor({ userId: who.id, id: f.id });
+    };
+    await purge();
+    // The real owner turns 2FA on.
+    const owner = createClient(URL_, ANON, { auth: { persistSession: false } });
+    await owner.auth.signInWithPassword({ email, password: process.env.SEED_PASSWORD });
+    const { data: en } = await owner.auth.mfa.enroll({ factorType: "totp", friendlyName: "Authenticator app", issuer: "Sejuk Ops" });
+    const { error: enErr } = await owner.auth.mfa.challengeAndVerify({ factorId: en.id, code: totp(en.totp.secret) });
+    if (enErr) throw new Error(`2FA setup for the test failed: ${enErr.message}`);
+
+    try {
+      // The attacker has the password only: an aal1 session.
+      const thief = createClient(URL_, ANON, { auth: { persistSession: false } });
+      const { data: s } = await thief.auth.signInWithPassword({ email, password: process.env.SEED_PASSWORD });
+      const thiefCookie = cookieHeader(s.session);
+
+      for (const p of ["/tech", "/tech/history", "/"]) {
+        const r = await hit(p, thiefCookie);
+        const blocked = r.status >= 300 && r.status < 400 && /\/login\/verify/.test(r.location);
+        // "/" is redirected by the proxy to /tech first; follow one hop.
+        const r2 = !blocked && r.location ? await hit(new URL(r.location, BASE).pathname, thiefCookie) : r;
+        const ok = blocked || (r2.status >= 300 && /\/login\/verify/.test(r2.location));
+        record("2FA", `Password only, open ${p}`, ok, `${r.status} → ${r.location}${r2 !== r ? ` → ${r2.location}` : ""}`);
+      }
+      const { count } = await thief.from("orders").select("id", { count: "exact", head: true });
+      record("2FA", "Password only, read own jobs via database API", count === 0, `${count} orders`);
+      const { data: hits } = await thief.rpc("search_orders", { p_query: "SJK", p_limit: 5 });
+      record("2FA", "Password only, search orders", (hits ?? []).length === 0, `${hits?.length ?? 0} hits`);
+      const { data: own } = await svc.from("orders").select("id").eq("assigned_technician_id", (await svc.from("technicians").select("id").eq("profile_id", who.id).single()).data.id).eq("status", "assigned").limit(1).maybeSingle();
+      if (own) {
+        const { error: e } = await thief.rpc("start_job", { p_order_id: own.id });
+        record("2FA", "Password only, start own job", !!e, e?.message.slice(0, 60));
+      }
+      const { error: un } = await thief.auth.mfa.unenroll({ factorId: en.id });
+      record("2FA", "Password only, remove the owner's authenticator", !!un, un?.message.slice(0, 60));
+      const { data: rogue, error: re } = await thief.auth.mfa.enroll({ factorType: "totp", friendlyName: "Thief phone" });
+      let rogueOk = false;
+      if (!re && rogue) {
+        const { error: rv } = await thief.auth.mfa.challengeAndVerify({ factorId: rogue.id, code: totp(rogue.totp.secret) });
+        const { count: after } = await thief.from("orders").select("id", { count: "exact", head: true });
+        rogueOk = !rv && (after ?? 0) > 0;
+      }
+      record("2FA", "Password only, add own authenticator to skip the code", !rogueOk, re ? re.message.slice(0, 60) : rogueOk ? "BYPASSED" : "enrolment gave no access");
+      const { error: guess } = await thief.auth.mfa.challengeAndVerify({ factorId: en.id, code: "123456" });
+      record("2FA", "Password only, guess a code", !!guess, guess?.message.slice(0, 60));
+    } finally {
+      await purge();
+    }
   }
 
   // ---------- report ----------

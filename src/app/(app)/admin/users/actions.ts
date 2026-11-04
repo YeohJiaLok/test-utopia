@@ -15,6 +15,7 @@ import {
   type ResetPasswordValues,
   type UpdateUserValues,
 } from "@/lib/users";
+import { auditMfa } from "@/lib/mfa";
 import type { ActionResult } from "../actions";
 
 // User management. Accounts live in auth.users (service role only) + public.profiles, so
@@ -264,6 +265,31 @@ export async function resetPasswordAction(values: ResetPasswordValues): Promise<
   }
 
   await audit(admin, actor, "password_reset", { id: target.id, name: target.full_name, email: target.email });
+  revalidateUserViews();
+  return { ok: true };
+}
+
+// ------------------------------------------------------------- reset 2FA --
+
+/**
+ * Lost-phone recovery: removes the user's authenticator so they can sign in with their
+ * password and set 2FA up again. Their current sessions keep working; audited as mfa_reset.
+ */
+export async function resetMfaAction(userId: string): Promise<ActionResult> {
+  const actor = await requireUser(["admin"]);
+  const admin = createAdminClient();
+  const { data: target } = await admin.from("profiles").select("id, full_name, email").eq("id", userId).maybeSingle();
+  if (!target) return { ok: false, error: "This user no longer exists" };
+
+  const { data, error } = await admin.auth.admin.mfa.listFactors({ userId });
+  if (error) return { ok: false, error: `Could not read sign-in methods: ${error.message}` };
+  if (!data.factors.length) return { ok: false, error: "Two-factor authentication is already off for this user" };
+  for (const f of data.factors) {
+    const { error: delError } = await admin.auth.admin.mfa.deleteFactor({ userId, id: f.id });
+    if (delError) return { ok: false, error: `Could not reset two-factor authentication: ${delError.message}` };
+  }
+
+  await auditMfa("mfa_reset", { id: actor.id, name: actor.fullName }, { id: target.id, name: target.full_name, email: target.email });
   revalidateUserViews();
   return { ok: true };
 }

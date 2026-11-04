@@ -22,6 +22,9 @@ export const USER_ACTION_LABELS: Record<string, string> = {
   user_deactivated: "User deactivated",
   user_reactivated: "User reactivated",
   password_reset: "Password reset",
+  mfa_enabled: "2FA turned on",
+  mfa_disabled: "2FA turned off",
+  mfa_reset: "2FA reset by admin",
 };
 
 export const ROLE_LABELS: Record<AuditRole, string> = {

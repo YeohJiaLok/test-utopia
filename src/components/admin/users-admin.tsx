@@ -17,6 +17,7 @@ import {
   Pencil,
   Search,
   ShieldCheck,
+  ShieldOff,
   UserPlus,
   Users,
   UserX,
@@ -52,7 +53,7 @@ import {
 } from "@/lib/users";
 import { cn } from "@/lib/utils";
 import type { UnlinkedTechnician, UserRow } from "@/app/(app)/admin/users/_lib/users";
-import { createUserAction, resetPasswordAction, updateUserAction } from "@/app/(app)/admin/users/actions";
+import { createUserAction, resetMfaAction, resetPasswordAction, updateUserAction } from "@/app/(app)/admin/users/actions";
 
 const ROLE_TONE: Record<AppRole, string> = {
   admin: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
@@ -69,6 +70,17 @@ function StatusDot({ active }: { active: boolean }) {
     <span className="inline-flex items-center gap-1.5 text-xs">
       <span className={cn("size-1.5 rounded-full", active ? "bg-emerald-500" : "bg-muted-foreground/40")} />
       {active ? "Active" : "Deactivated"}
+    </span>
+  );
+}
+
+function MfaChip() {
+  return (
+    <span
+      title="Two-factor authentication on"
+      className="bg-success/10 text-success ring-success/20 inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold ring-1 ring-inset"
+    >
+      <ShieldCheck className="size-3" /> 2FA
     </span>
   );
 }
@@ -235,7 +247,10 @@ export function UsersAdmin({
                       </TableCell>
                       <TableCell className="text-sm">{u.branchName ?? "—"}</TableCell>
                       <TableCell>
-                        <StatusDot active={u.active} />
+                        <span className="flex items-center gap-2">
+                          <StatusDot active={u.active} />
+                          {u.mfaEnabled && <MfaChip />}
+                        </span>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm" title={u.lastSignInAt ?? undefined} suppressHydrationWarning>
                         {u.lastSignInAt ? formatRelative(u.lastSignInAt) : "Never"}
@@ -284,6 +299,7 @@ export function UsersAdmin({
                         <RolePill role={u.role} />
                         {u.technician && <span className="bg-muted rounded px-1.5 py-px font-mono text-[10px] font-semibold">{u.technician.teamCode}</span>}
                         <StatusDot active={u.active} />
+                        {u.mfaEnabled && <MfaChip />}
                       </span>
                     </span>
                     <ChevronRight className="text-muted-foreground size-4 shrink-0" />
@@ -648,6 +664,7 @@ function UserSheet({
                       <KeyRound /> Reset password
                     </Button>
                   </div>
+                  <MfaRow user={user} onReset={onClose} />
                 </div>
               )
             )}
@@ -671,6 +688,55 @@ function UserSheet({
         </form>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** 2FA status for the edited user, with the lost-phone reset (two clicks: Reset, then Confirm). */
+function MfaRow({ user, onReset }: { user: UserRow; onReset: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function reset() {
+    setPending(true);
+    const res = await resetMfaAction(user.id);
+    setPending(false);
+    if (!res.ok) return toast.error(res.error);
+    toast.success(`Two-factor authentication reset for ${user.fullName}`, {
+      description: "They can sign in with their password and set it up again.",
+    });
+    onReset();
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+      <div className="min-w-0 flex-1 basis-56">
+        <p className="flex items-center gap-2 text-sm font-medium">
+          Two-factor authentication {user.mfaEnabled ? <MfaChip /> : <span className="text-muted-foreground text-xs font-normal">Off</span>}
+        </p>
+        <p className="text-muted-foreground text-xs">
+          {user.mfaEnabled
+            ? confirming
+              ? "Removes their authenticator app. Use this if they lost their phone."
+              : "Signs in with a code from an authenticator app."
+            : "The user can turn it on from their own menu."}
+        </p>
+      </div>
+      {user.mfaEnabled &&
+        (confirming ? (
+          <div className="ml-auto flex shrink-0 gap-1.5">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)} disabled={pending}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" size="sm" onClick={reset} disabled={pending}>
+              {pending ? <Loader2 className="animate-spin" /> : <ShieldOff />} Confirm reset
+            </Button>
+          </div>
+        ) : (
+          <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => setConfirming(true)}>
+            <ShieldOff /> Reset 2FA
+          </Button>
+        ))}
+    </div>
   );
 }
 

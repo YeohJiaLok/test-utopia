@@ -18,7 +18,8 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const { response, claims } = await updateSession(request);
 
-  const isPublic = pathname === "/login" || pathname === "/auth/signout" || pathname.startsWith("/api/health");
+  // /login/verify is the 2FA code step: it checks the session itself (signed out → /login).
+  const isPublic = pathname === "/login" || pathname === "/login/verify" || pathname === "/auth/signout" || pathname.startsWith("/api/health");
   // role + active are copied from public.profiles into app_metadata by the profiles_sync_claims trigger.
   const meta = claims?.app_metadata as { role?: Role; active?: boolean } | undefined;
   const role = meta?.role;

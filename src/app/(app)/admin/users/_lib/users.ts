@@ -14,6 +14,8 @@ export interface UserRow {
   branchName: string | null;
   createdAt: string;
   lastSignInAt: string | null;
+  /** Has a confirmed authenticator app (two-factor authentication on). */
+  mfaEnabled: boolean;
   /** Linked roster entry (technicians only). */
   technician: { id: string; teamCode: string; skills: string[]; openJobs: number } | null;
 }
@@ -32,7 +34,7 @@ const OPEN = ["assigned", "in_progress"];
 /** Every account with role, status, branch, last sign-in and (for technicians) open jobs. */
 export async function getUsers(): Promise<UserRow[]> {
   const supabase = await createClient();
-  const [profiles, techs, open, lastSignIn] = await Promise.all([
+  const [profiles, techs, open, lastSignIn, mfa] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, email, role, active, phone, branch_id, created_at, branch:branches(name)")
@@ -40,6 +42,8 @@ export async function getUsers(): Promise<UserRow[]> {
     supabase.from("technicians").select("id, profile_id, team_code, skills").not("profile_id", "is", null),
     supabase.from("orders").select("assigned_technician_id").in("status", OPEN),
     getLastSignIns(),
+    // Users with 2FA on (admin-only function over auth.mfa_factors).
+    supabase.rpc("mfa_enrolled_users").then((r) => new Set((r.data ?? []) as string[])),
   ]);
   if (profiles.error) throw new Error(`Could not load users: ${profiles.error.message}`);
 
@@ -63,6 +67,7 @@ export async function getUsers(): Promise<UserRow[]> {
       branchName: branch?.name ?? null,
       createdAt: p.created_at,
       lastSignInAt: lastSignIn.get(p.id) ?? null,
+      mfaEnabled: mfa.has(p.id),
       technician: t ? { id: t.id, teamCode: t.team_code, skills: t.skills ?? [], openJobs: jobs.get(t.id) ?? 0 } : null,
     };
   });

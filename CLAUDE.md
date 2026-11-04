@@ -28,8 +28,12 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
 - Least privilege (`*_least_privilege.sql`): signed-in users READ through RLS; writes go through workflow functions or
   explicit column grants (`notifications(status, read_at)`, `ai_flags` resolution fields). Technicians see only their own
   profile/technician row. `anon` has no table access. New tables: enable RLS, add policies, and grant no write by default.
+- **Two-factor authentication (TOTP)** is self-service from the user menu (`components/shell/mfa-sheet.tsx`, actions in
+  `app/(app)/mfa-actions.ts`, helpers in `lib/mfa.ts`); sign-in's code step is `/login/verify`. Enforcement is in Postgres:
+  `mfa_satisfied()` gates `current_app_role()` / `current_technician_id()`, so an aal1 session of a 2FA user gets no data.
+  `requireUser` sends such sessions to `/login/verify`. Admins reset lost phones from Users & roles (audited `mfa_reset`).
 - After any change to auth, routes, RLS, grants or functions run `npm run security:check` (dev server up): it signs in as
-  a technician and fires 75 escalation attacks; every one must report BLOCKED. Add a case for each new route/table/RPC.
+  a technician and fires 85 escalation attacks (incl. 2FA bypasses); every one must report BLOCKED. Add a case for each new route/table/RPC.
 
 ## Next.js 16 specifics
 - `middleware` is now `src/proxy.ts`. `params` / `searchParams` are Promises.

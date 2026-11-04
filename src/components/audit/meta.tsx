@@ -13,6 +13,7 @@ import {
   ScrollText,
   ShieldAlert,
   ShieldCheck,
+  ShieldOff,
   Sparkles,
   UserCheck,
   UserCog,
@@ -62,6 +63,9 @@ const USER_META: Record<string, ActionMeta> = {
   user_deactivated: { icon: UserX, tone: "red" },
   user_reactivated: { icon: UserCheck, tone: "green" },
   password_reset: { icon: KeyRound, tone: "amber" },
+  mfa_enabled: { icon: ShieldCheck, tone: "green" },
+  mfa_disabled: { icon: ShieldOff, tone: "amber" },
+  mfa_reset: { icon: ShieldOff, tone: "red" },
 };
 
 export function actionMeta(tab: AuditTab, action: string): ActionMeta {

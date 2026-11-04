@@ -1,10 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Controller, useForm, useWatch, type FieldPath } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "motion/react";
-import { CalendarClock, FilePlus2, FileText, Hash, Loader2, Send, Sparkles, User, Wrench, X } from "lucide-react";
+import { CalendarClock, FilePlus2, FileText, Loader2, Send, Sparkles, User, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import type { ExtractedOrderFields } from "@/lib/ai/contracts";
 import type { TechnicianWithLoad } from "@/lib/data/reference";
 import type { ServiceType } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { createOrderAction, type CreatedOrderSummary } from "@/app/(app)/admin/actions";
+import { createOrderAction, peekNextOrderNo, type CreatedOrderSummary } from "@/app/(app)/admin/actions";
 import { AiChip, aiFieldClass } from "./ai-chip";
 import { documentDateToInputValue, fromMytInputValue } from "./datetime";
 import { ORDER_FORM_DEFAULTS, formatMyMobile, orderFormSchema, type OrderFormValues } from "./order-schema";
@@ -67,10 +67,13 @@ function Section({
 export function OrderForm({
   serviceTypes,
   technicians,
+  initialOrderNo,
   orderNoPrefix,
 }: {
   serviceTypes: ServiceType[];
   technicians: TechnicianWithLoad[];
+  /** Next order number from the database sequence (null if it couldn't be read). */
+  initialOrderNo: string | null;
   orderNoPrefix: string;
 }) {
   const ids = useId();
@@ -96,6 +99,20 @@ export function OrderForm({
   const [source, setSource] = useState<"manual" | "ai_document">("manual");
   const [priceTouched, setPriceTouched] = useState(false);
   const [created, setCreated] = useState<CreatedOrderSummary | null>(null);
+  const [nextOrderNo, setNextOrderNo] = useState(initialOrderNo);
+
+  // Keep the previewed number current: another admin may save an order while this one is open.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") void peekNextOrderNo().then((n) => n && setNextOrderNo(n));
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
 
   const service = serviceTypes.find((s) => String(s.id) === values.serviceTypeId) ?? null;
   const tech = technicians.find((t) => t.id === values.technicianId) ?? null;
@@ -178,6 +195,8 @@ export function OrderForm({
     setSource("manual");
     setPriceTouched(false);
     setCreated(null);
+    setNextOrderNo(null);
+    void peekNextOrderNo().then(setNextOrderNo);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -273,19 +292,6 @@ export function OrderForm({
             </motion.div>
 
             <Section icon={User} title="Customer" description="Who we're servicing and where." delay={0.05}>
-              <FormField label="Order No" htmlFor={id("orderNo")} hint={`Format ${orderNoPrefix}-##### · assigned by the system`} className="sm:col-span-2">
-                <div className="relative">
-                  <Hash className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-                  <Input
-                    id={id("orderNo")}
-                    value="Auto-generated on save"
-                    readOnly
-                    aria-readonly
-                    tabIndex={-1}
-                    className="bg-muted/50 text-muted-foreground h-11 cursor-default sm:h-9 pl-7 font-mono text-[13px]"
-                  />
-                </div>
-              </FormField>
               <FormField label="Customer name" htmlFor={id("customerName")} required error={errors.customerName?.message} aside={aside("customerName")}>
                 <Input
                   id={id("customerName")}
@@ -454,9 +460,21 @@ export function OrderForm({
               <div className="bg-gradient-brand h-1" />
               <div className="space-y-4 p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-muted-foreground text-xs">Order preview</p>
-                    <p className="font-mono text-sm font-semibold">{orderNoPrefix}-•••••</p>
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.p
+                        key={nextOrderNo ?? "pending"}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.2, ease: EASE }}
+                        className="font-mono text-sm font-semibold tabular"
+                        title="Assigned automatically when you create the order"
+                      >
+                        {nextOrderNo ?? `${orderNoPrefix}-•••••`}
+                      </motion.p>
+                    </AnimatePresence>
                   </div>
                   <StatusBadge status={values.technicianId ? "assigned" : "new"} />
                 </div>

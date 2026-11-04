@@ -7,7 +7,7 @@ import { motion } from "motion/react";
 import { Menu, Search, Snowflake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { NAV, type NavSection } from "@/lib/routes";
+import { NAV, QUICK_ACTIONS, type NavSection } from "@/lib/routes";
 import type { AppRole, Notification, SessionUser } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EASE } from "@/components/motion";
@@ -133,7 +133,9 @@ function Breadcrumb({ sections }: { sections: NavSection[] }) {
   const match = [...all].sort((a, b) => b.href.length - a.href.length).find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
   const extra =
     match && pathname !== match.href
-      ? pathname.endsWith("/complete")
+      ? pathname.endsWith("/orders/new")
+        ? "New order"
+        : pathname.endsWith("/complete")
         ? "Complete job"
         : pathname.startsWith("/tech/")
           ? "Job details"
@@ -245,7 +247,7 @@ export function AppShell({
         </main>
       </div>
       {isTech && <MobileTabBar tabs={tabs} badges={badges} pathname={pathname} />}
-      <CommandPalette nav={sections} />
+      <CommandPalette nav={sections} actions={QUICK_ACTIONS[user.role]} />
       {aside}
     </div>
   );

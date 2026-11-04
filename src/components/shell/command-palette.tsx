@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, CalendarClock, CornerDownLeft, Loader2, MapPin, Search, User, Wrench } from "lucide-react";
 import { Command, CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { StatusBadge } from "@/components/shared/status-badge";
-import type { NavSection } from "@/lib/routes";
+import type { NavItem, NavSection } from "@/lib/routes";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { searchOrders, type OrderSearchHit } from "@/app/(app)/shell-actions";
@@ -55,7 +55,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
  * Global search (Ctrl/⌘ K): ranked, typo-tolerant order search across order number, customer,
  * phone, address, technician, service, branch and status — plus page navigation.
  */
-export function CommandPalette({ nav }: { nav: NavSection[] }) {
+export function CommandPalette({ nav, actions = [] }: { nav: NavSection[]; actions?: NavItem[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -106,7 +106,7 @@ export function CommandPalette({ nav }: { nav: NavSection[] }) {
   const searching = q.length >= 2;
   const hits = searching && (search.status === "ready" || search.status === "loading") ? search.hits : [];
   const loading = searching && (search.status === "loading" || ("query" in search ? search.query !== q : true));
-  const pages = nav.flatMap((s) => s.items).filter((i) => !searching || i.label.toLowerCase().includes(q.toLowerCase()));
+  const pages = [...actions, ...nav.flatMap((s) => s.items)].filter((i) => !searching || i.label.toLowerCase().includes(q.toLowerCase()));
 
   // Every open starts fresh.
   function onOpenChange(next: boolean) {

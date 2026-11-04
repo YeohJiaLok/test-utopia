@@ -24,13 +24,22 @@ export interface NavSection {
   items: NavItem[];
 }
 
+/**
+ * Actions offered in the command palette (Ctrl+K) but not in the sidebar. "New order" lives
+ * on the Orders page (header button / mobile FAB), so the sidebar keeps one entry per area.
+ */
+export const QUICK_ACTIONS: Record<AppRole, NavItem[]> = {
+  admin: [{ href: "/admin/orders/new", label: "New order", icon: "FilePlus2" }],
+  manager: [],
+  technician: [],
+};
+
 export const NAV: Record<AppRole, NavSection[]> = {
   admin: [
     {
       items: [
         { href: "/admin", label: "Overview", icon: "LayoutDashboard" },
         { href: "/admin/orders", label: "Orders", icon: "ClipboardList", badgeKey: "unassigned" },
-        { href: "/admin/orders/new", label: "New order", icon: "FilePlus2" },
         { href: "/admin/technicians", label: "Technicians", icon: "Users" },
         { href: "/admin/notifications", label: "WhatsApp outbox", icon: "MessageCircle" },
       ],

@@ -50,6 +50,17 @@ function flattenIssues(issues: { path: PropertyKey[]; message: string }[]) {
   return out;
 }
 
+/**
+ * The order number the next saved order will get (read without consuming the sequence).
+ * Null if it can't be read; the form then shows the format only.
+ */
+export async function peekNextOrderNo(): Promise<string | null> {
+  await requireUser(["admin"]);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("peek_next_order_no");
+  return error || typeof data !== "string" ? null : data;
+}
+
 /** Module 1: create an order via the `create_order` workflow function. */
 export async function createOrderAction(
   values: OrderFormValues,

@@ -156,6 +156,7 @@ function leaked(r) {
     ["reset_audit_chain", {}],
     ["verify_audit_chain", {}],
     ["sync_order_no_seq", {}],
+    ["peek_next_order_no", {}],
   ];
   for (const [fn, args] of rpcs) {
     const { data, error: e } = await db.rpc(fn, args);

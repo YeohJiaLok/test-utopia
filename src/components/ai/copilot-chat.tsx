@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowUp, Copy, Database, FileText, KeyRound, RotateCcw, ShieldCheck, Sparkles, Square } from "lucide-react";
+import { AlertTriangle, ArrowUp, Ban, Copy, Database, FileText, KeyRound, RotateCcw, ShieldCheck, Sparkles, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EASE } from "@/components/motion";
@@ -96,7 +96,11 @@ function AssistantMessage({ turn, isLatest }: { turn: AssistantTurn; isLatest: b
     <div className="flex gap-3">
       <AssistantAvatar busy={streaming} />
       <div className="min-w-0 flex-1 space-y-3">
-        <AgentTrace turn={turn} defaultOpen={isLatest} />
+        {turn.policy ? (
+          <PolicyBadge policy={turn.policy} />
+        ) : (
+          <AgentTrace turn={turn} defaultOpen={isLatest} />
+        )}
 
         {content && (
           <div className="relative">
@@ -132,11 +136,17 @@ function AssistantMessage({ turn, isLatest }: { turn: AssistantTurn; isLatest: b
             transition={{ delay: 0.15 }}
             className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]"
           >
-            <span className="inline-flex items-center gap-1">
-              <Database className="size-3" />
-              Grounded in {records.toLocaleString("en-MY")} {records === 1 ? "record" : "records"} · {queries}{" "}
-              {queries === 1 ? "query" : "queries"} · {((turn.latencyMs ?? 0) / 1000).toFixed(1)}s
-            </span>
+            {turn.policy ? (
+              <span className="inline-flex items-center gap-1">
+                <ShieldCheck className="size-3" /> Policy response · logged for audit
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                <Database className="size-3" />
+                Grounded in {records.toLocaleString("en-MY")} {records === 1 ? "record" : "records"} · {queries}{" "}
+                {queries === 1 ? "query" : "queries"} · {((turn.latencyMs ?? 0) / 1000).toFixed(1)}s
+              </span>
+            )}
             {turn.content && (
               <button type="button" onClick={copy} className="hover:text-foreground inline-flex items-center gap-1 transition-colors">
                 <Copy className="size-3" /> Copy
@@ -146,6 +156,27 @@ function AssistantMessage({ turn, isLatest }: { turn: AssistantTurn; isLatest: b
         )}
       </div>
     </div>
+  );
+}
+
+/** Shown when the acceptable-use policy blocked the question or the model declined it. */
+function PolicyBadge({ policy }: { policy: NonNullable<AssistantTurn["policy"]> }) {
+  const blocked = policy.outcome === "blocked";
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: EASE }}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset",
+        blocked
+          ? "bg-amber-500/10 text-amber-700 ring-amber-500/25 dark:text-amber-300"
+          : "bg-muted text-muted-foreground ring-border",
+      )}
+    >
+      {blocked ? <Ban className="size-3" /> : <ShieldCheck className="size-3" />}
+      {blocked ? "Blocked by policy" : "Outside my scope"} · {policy.label}
+    </motion.div>
   );
 }
 

@@ -19,6 +19,10 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
   email + password only; the role in `profiles` decides the portal. Deactivated profiles (`active = false`) are signed out.
 - **AI is agentic and governed:** tools are whitelisted, read-only, parameterised, row-capped queries; never raw SQL.
   Every model call is logged to `ai_runs`. Contracts between AI and modules: `src/lib/ai/contracts.ts`.
+  The Copilot (floating "Sejuk Ops AI" for admin + manager, `components/ai/copilot-drawer.tsx`) is guarded by an
+  acceptable-use policy (`src/lib/ai/policy.ts`): injection / write requests / secrets / length are blocked before any
+  model call (ai_runs status `blocked`), 20 questions per 10 min per user, and off-topic questions make the model call
+  `decline_request` (status `refused`). Add new SSE event types to `EVENT_TYPES` in `src/lib/ai/sse.ts`.
 - Notifications (WhatsApp deep links + in-app) are produced by DB triggers; UI reads the `notifications` table.
 - `order_events` is an append-only SHA-256 hash chain (`*_audit_integrity.sql`): never update it; only the service role may
   delete (demo reset), and the seed calls `reset_audit_chain()` after its wipe. `verify_audit_chain()` checks it.

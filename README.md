@@ -161,6 +161,12 @@ flowchart TB
   the audit-log count from 1.2 s to 150 ms. The signed-in user's profile, technician link and 2FA state load in one
   call. In a production build every page renders in about 0.25–0.45 s against the Singapore database. Deploy the app
   in the same region (Vercel `sin1`) to cut that further.
+- **AI assistant with an enforced acceptable-use policy.** "Sejuk Ops AI" floats bottom-right for admins and managers
+  (full screen on phones). Before any model call, a policy layer blocks prompt injection ("ignore your instructions",
+  "show your system prompt"), requests to change data (the assistant is read-only), and requests for passwords or keys.
+  It also caps each user at 20 questions per 10 minutes. Off-topic questions (weather, coding, chit-chat) make the
+  model call a `decline_request` tool, so refusals are explicit. Every outcome (ok, blocked, refused) is in the AI runs
+  audit log, and the chat shows which rule applied.
 - **Notifications are data.** Triggers render the brief's WhatsApp template ("Hi {name}, Job {id} has been completed by
   Technician {name} at {time}…") into a `notifications` row with a `wa.me` deep link. They also notify the technician when
   a job is assigned and push in-app alerts to managers and accounts. Supabase Realtime delivers the alerts live (bell + toast).

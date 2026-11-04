@@ -3,7 +3,10 @@ import type { CopilotEvent } from "@/lib/ai/contracts";
 import { MAX_HISTORY_MESSAGES, MAX_QUESTION_CHARS } from "@/lib/ai/catalogue";
 import { runCopilot, type CopilotMessage } from "@/lib/ai/copilot";
 import { authorizeApi, jsonError } from "@/lib/ai/http";
+import { logAiRun } from "@/lib/ai/log";
+import { POLICY_LABEL, RATE_LIMIT, screenQuestion, type PolicyCategory } from "@/lib/ai/policy";
 import { encodeSse, SSE_HEARTBEAT } from "@/lib/ai/sse";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -30,6 +33,43 @@ function prepareHistory(messages: CopilotMessage[]): CopilotMessage[] {
   return recent.map((m) => ({ role: m.role, content: m.content.trim().slice(0, MAX_HISTORY_CHARS) }));
 }
 
+/** Copilot questions this user asked in the rate-limit window (all outcomes count). */
+async function recentQuestions(userId: string): Promise<number> {
+  const since = new Date(Date.now() - RATE_LIMIT.windowMinutes * 60_000).toISOString();
+  const { count } = await createAdminClient()
+    .from("ai_runs")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("kind", "copilot")
+    .gte("created_at", since);
+  return count ?? 0;
+}
+
+/** Answers a policy-blocked question without calling the model, and logs it. */
+async function policyResponse(userId: string, question: string, category: PolicyCategory, message: string) {
+  const runId = crypto.randomUUID();
+  await logAiRun({
+    id: runId,
+    kind: "copilot",
+    userId,
+    input: question,
+    output: message,
+    model: null,
+    latencyMs: 0,
+    status: "blocked",
+    error: `Policy: ${category}`,
+  });
+  const events: CopilotEvent[] = [
+    { type: "run", runId },
+    { type: "policy", outcome: "blocked", category, label: POLICY_LABEL[category] },
+    { type: "text", delta: message },
+    { type: "done", latencyMs: 0 },
+  ];
+  return new Response(events.map(encodeSse).join(""), {
+    headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-store, no-transform" },
+  });
+}
+
 /** POST /api/ai/chat — Ops Copilot, streamed as Server-Sent Events of CopilotEvent. */
 export async function POST(request: Request) {
   const auth = await authorizeApi(["manager", "admin"]);
@@ -47,8 +87,18 @@ export async function POST(request: Request) {
   const history = prepareHistory(parsed.data.messages);
   const last = history.at(-1);
   if (!last || last.role !== "user") return jsonError(400, "The last message must be a question from the user.");
-  if (last.content.length > MAX_QUESTION_CHARS) {
-    return jsonError(413, `Questions are limited to ${MAX_QUESTION_CHARS} characters.`);
+
+  // Acceptable-use policy, before any model call: injection, write requests, secrets, length…
+  const screen = screenQuestion(last.content, MAX_QUESTION_CHARS);
+  if (!screen.allowed) return policyResponse(auth.user.id, last.content, screen.category, screen.message);
+  // …and a per-user rate limit.
+  if ((await recentQuestions(auth.user.id)) >= RATE_LIMIT.max) {
+    return policyResponse(
+      auth.user.id,
+      last.content,
+      "rate_limit",
+      `You've asked ${RATE_LIMIT.max} questions in the last ${RATE_LIMIT.windowMinutes} minutes. Please wait a few minutes and try again.`,
+    );
   }
 
   // Every tool query runs through this user-scoped client, so RLS applies to the agent.

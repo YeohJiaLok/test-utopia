@@ -38,6 +38,8 @@ export interface AssistantTurn {
   error?: string;
   latencyMs?: number;
   usage?: { input_tokens: number; output_tokens: number };
+  /** Set when the acceptable-use policy blocked or the model declined the question. */
+  policy?: { outcome: "blocked" | "refused"; category: string; label: string };
 }
 
 export type Turn = UserTurn | AssistantTurn;
@@ -103,6 +105,8 @@ export function reduceEvent(turn: AssistantTurn, event: CopilotEvent): Assistant
       return { ...turn, content: turn.content + event.delta };
     case "records":
       return { ...turn, records: event.records };
+    case "policy":
+      return { ...turn, policy: { outcome: event.outcome, category: event.category, label: event.label } };
     case "done":
       return { ...turn, status: "done", statusLabel: "Done", latencyMs: event.latencyMs, usage: event.usage };
     case "error":
@@ -181,6 +185,12 @@ async function ask(question: string) {
       const { value, done } = await reader.read();
       if (done) break;
       parser.push(value);
+      // The answer is complete: free the input now instead of waiting for the server to
+      // finish writing the governance log and close the stream.
+      if (terminal) {
+        void reader.cancel().catch(() => {});
+        break;
+      }
     }
     parser.flush();
     if (!terminal) {

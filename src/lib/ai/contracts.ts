@@ -50,4 +50,6 @@ export type CopilotEvent =
   | { type: "text"; delta: string }
   | { type: "records"; records: { orderNo: string; orderId: string; label: string }[] }
   | { type: "done"; usage?: { input_tokens: number; output_tokens: number }; latencyMs: number }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  /** The acceptable-use policy stopped (blocked) or the model declined (refused) the question. */
+  | { type: "policy"; outcome: "blocked" | "refused"; category: string; label: string };

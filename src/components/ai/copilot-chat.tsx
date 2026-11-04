@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowUp, Ban, Copy, Database, FileText, KeyRound, RotateCcw, ShieldCheck, Sparkles, Square } from "lucide-react";
+import { AlertTriangle, ArrowUp, Ban, BarChart3, Copy, Database, FileText, KeyRound, RotateCcw, ShieldCheck, Sparkles, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EASE } from "@/components/motion";
@@ -12,6 +12,7 @@ import { MAX_QUESTION_CHARS, SUGGESTED_QUESTIONS } from "@/lib/ai/catalogue";
 import { linkifyOrders } from "@/lib/ai/linkify";
 import { cn } from "@/lib/utils";
 import { AgentTrace, traceMetrics } from "./agent-trace";
+import { CopilotChart } from "./copilot-chart";
 import { CopilotMarkdown } from "./copilot-markdown";
 import { useCopilot, type AssistantTurn } from "./use-copilot";
 
@@ -75,7 +76,18 @@ function RecordChips({ turn }: { turn: AssistantTurn }) {
   );
 }
 
-function AssistantMessage({ turn, isLatest }: { turn: AssistantTurn; isLatest: boolean }) {
+/** Tools whose results are breakdowns worth charting. */
+const CHARTABLE_TOOLS = new Set(["count_jobs", "technician_performance", "workload_analysis"]);
+export const CHART_REQUEST = "Show that as a chart";
+
+/** Offer a chart when the AI suggested one, or the answer came from a multi-row breakdown. */
+function offersChart(turn: AssistantTurn) {
+  if (turn.status !== "done" || turn.policy || turn.charts.length) return false;
+  if (/chart|graph/i.test(turn.content.slice(-200))) return true;
+  return turn.steps.some((s) => s.kind === "tool" && CHARTABLE_TOOLS.has(s.name) && (s.rows ?? 0) >= 2);
+}
+
+function AssistantMessage({ turn, isLatest, onAsk, busy }: { turn: AssistantTurn; isLatest: boolean; onAsk: (q: string) => void; busy: boolean }) {
   const streaming = turn.status === "streaming";
   const { queries, records } = traceMetrics(turn);
   const content = useMemo(
@@ -101,6 +113,10 @@ function AssistantMessage({ turn, isLatest }: { turn: AssistantTurn; isLatest: b
         ) : (
           <AgentTrace turn={turn} defaultOpen={isLatest} />
         )}
+
+        {turn.charts.map((chart, i) => (
+          <CopilotChart key={`${turn.id}-chart-${i}`} spec={chart} />
+        ))}
 
         {content && (
           <div className="relative">
@@ -129,6 +145,20 @@ function AssistantMessage({ turn, isLatest }: { turn: AssistantTurn; isLatest: b
 
         <RecordChips turn={turn} />
 
+        {isLatest && offersChart(turn) && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.3, ease: EASE }}
+            onClick={() => onAsk(CHART_REQUEST)}
+            disabled={busy}
+            className="bg-gradient-ai inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium text-white shadow-md transition-transform hover:-translate-y-px disabled:opacity-50 sm:h-8"
+          >
+            <BarChart3 className="size-3.5" /> Show as chart
+          </motion.button>
+        )}
+
         {turn.status === "done" && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -139,6 +169,11 @@ function AssistantMessage({ turn, isLatest }: { turn: AssistantTurn; isLatest: b
             {turn.policy ? (
               <span className="inline-flex items-center gap-1">
                 <ShieldCheck className="size-3" /> Policy response · logged for audit
+              </span>
+            ) : turn.charts.length && queries === 0 ? (
+              <span className="inline-flex items-center gap-1">
+                <BarChart3 className="size-3" />
+                Charted from the figures above · no new queries · {((turn.latencyMs ?? 0) / 1000).toFixed(1)}s
               </span>
             ) : (
               <span className="inline-flex items-center gap-1">
@@ -268,7 +303,7 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
                         </div>
                       </div>
                     ) : (
-                      <AssistantMessage turn={turn} isLatest={turn.id === lastAssistant} />
+                      <AssistantMessage turn={turn} isLatest={turn.id === lastAssistant} onAsk={submit} busy={pending} />
                     )}
                   </motion.div>
                 ))}

@@ -1,17 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, Maximize2, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ChevronDown, Maximize2, Minimize2, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { CopilotChat } from "./copilot-chat";
 import { useCopilot } from "./use-copilot";
-
-const ASSISTANT_PATH = "/manager/assistant";
 
 /** Pages with a fixed bar or button at the bottom on phones: lift the launcher above it. */
 const RAISED_ON_MOBILE = [/^\/admin\/orders(\/new)?$/, /^\/admin\/orders\/[^/]+$/, /^\/manager\/orders\/[^/]+$/];
@@ -38,16 +35,17 @@ function HeaderButton({ label, children, ...props }: { label: string; children: 
 }
 
 /**
- * Sejuk Ops AI: floating assistant for office roles (admin, manager). The launcher sits
- * bottom-right; the chat window grows out of it (full screen on phones). The conversation
- * lives in a module store, so it survives closing the window and moving between pages.
+ * Sejuk Ops AI: floating assistant for office roles (admin, manager), the only entry point
+ * to the Ops Copilot. The launcher sits bottom-right; the chat window grows out of it and can
+ * expand in place for charts and tables (full screen on phones). The conversation lives in a
+ * module store, so it survives closing the window and moving between pages.
  */
 export function CopilotDrawer() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [seenId, setSeenId] = useState<string | null>(null);
   const { turns, pending, reset } = useCopilot();
-  const hidden = pathname === ASSISTANT_PATH || pathname.startsWith(`${ASSISTANT_PATH}/`);
   const raised = RAISED_ON_MOBILE.some((r) => r.test(pathname));
 
   const lastDone = [...turns].reverse().find((t) => t.role === "assistant" && t.status !== "streaming")?.id ?? null;
@@ -70,8 +68,6 @@ export function CopilotDrawer() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  if (hidden) return null;
-
   return (
     <>
       <AnimatePresence>
@@ -87,7 +83,12 @@ export function CopilotDrawer() {
             style={{ transformOrigin: "bottom right" }}
             className={cn(
               "bg-ai-surface fixed inset-0 z-50 flex flex-col overflow-hidden",
-              "sm:inset-auto sm:right-6 sm:bottom-24 sm:h-[min(680px,calc(100dvh-8rem))] sm:w-[400px] sm:rounded-2xl sm:border sm:shadow-[0_24px_70px_-12px_rgb(0_0_0/0.35)]",
+              "sm:inset-auto sm:right-6 sm:bottom-24 sm:rounded-2xl sm:border sm:shadow-[0_24px_70px_-12px_rgb(0_0_0/0.35)]",
+              // Expand grows the same window in place (smooth width/height transition), never another page.
+              "sm:transition-[width,height] sm:duration-500 sm:ease-[cubic-bezier(0.22,1,0.36,1)]",
+              expanded
+                ? "sm:h-[calc(100dvh-8rem)] sm:w-[min(880px,calc(100vw-3rem))]"
+                : "sm:h-[min(680px,calc(100dvh-8rem))] sm:w-[400px]",
               "dark:sm:border-white/12 dark:sm:shadow-[0_28px_90px_-10px_rgb(0_0_0/0.85),0_0_0_1px_rgb(255_255_255/0.04)]",
               "lg:right-8 lg:bottom-28",
             )}
@@ -110,24 +111,14 @@ export function CopilotDrawer() {
                   <HeaderButton label="New conversation" onClick={reset} disabled={!turns.length || pending}>
                     <RotateCcw />
                   </HeaderButton>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Link
-                          href={ASSISTANT_PATH}
-                          onClick={() => setOpen(false)}
-                          aria-label="Open full screen"
-                          className={cn(
-                            buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                            "hidden size-8 text-white/85 hover:bg-white/15 hover:text-white sm:inline-flex",
-                          )}
-                        />
-                      }
-                    >
-                      <Maximize2 />
-                    </TooltipTrigger>
-                    <TooltipContent>Open full screen</TooltipContent>
-                  </Tooltip>
+                  <HeaderButton
+                    label={expanded ? "Restore size" : "Expand"}
+                    onClick={() => setExpanded((v) => !v)}
+                    aria-pressed={expanded}
+                    className="hidden size-8 text-white/85 hover:bg-white/15 hover:text-white sm:inline-flex"
+                  >
+                    {expanded ? <Minimize2 /> : <Maximize2 />}
+                  </HeaderButton>
                   <HeaderButton label="Close" onClick={() => toggle(false)}>
                     <X className="sm:hidden" />
                     <ChevronDown className="hidden sm:block" />

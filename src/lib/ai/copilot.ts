@@ -4,7 +4,7 @@ import { z } from "zod";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { BetaMessage, BetaMessageParam } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import type { createClient } from "@/lib/supabase/server";
-import type { CopilotEvent } from "@/lib/ai/contracts";
+import type { ChartSpec, CopilotEvent } from "@/lib/ai/contracts";
 import { TOOL_LABELS } from "@/lib/ai/catalogue";
 import { addUsage, AI_NOT_CONFIGURED, aiModel, describeAiError, errorDetail, getAnthropic, isAbortError } from "@/lib/ai/client";
 import { mentionedOrderNumbers } from "@/lib/ai/linkify";
@@ -54,6 +54,36 @@ function declineTool(onDecline: (category: PolicyCategory, reason: string) => vo
     run: async ({ category, reason }) => {
       onDecline(category, reason);
       return "Declined and logged. Reply with one short, polite sentence and suggest one operations question you can answer.";
+    },
+  });
+}
+
+const chartSchema = z
+  .object({
+    type: z.enum(["bar", "horizontal_bar", "line", "area", "pie"]),
+    title: z.string().min(3).max(80),
+    subtitle: z.string().max(120).optional(),
+    unit: z.enum(["count", "myr", "percent", "hours"]),
+    series: z.array(z.string().min(1).max(40)).min(1).max(2).describe("Series names, e.g. [\"Jobs completed\"] or [\"This week\", \"Last week\"]."),
+    data: z
+      .array(z.object({ label: z.string().min(1).max(40), values: z.array(z.number().finite()).min(1).max(2) }))
+      .min(2)
+      .max(31)
+      .describe("One point per category or period, values in the same order as series."),
+  })
+  .refine((c) => c.data.every((d) => d.values.length === c.series.length), "Each data point needs one value per series")
+  .refine((c) => c.type !== "pie" || (c.series.length === 1 && c.data.length <= 8), "Pie charts take one series and at most 8 slices");
+
+/** Presentation tool: draws a chart in the chat from numbers the agent already has. Reads no data. */
+function chartTool(onChart: (chart: ChartSpec) => void) {
+  return betaZodTool({
+    name: "render_chart",
+    description:
+      "Draw a chart in the chat. Use ONLY when the user asks for a chart/graph/visual, with numbers taken from tool results or your previous answer. Never invent values.",
+    inputSchema: chartSchema,
+    run: async (chart) => {
+      onChart(chart);
+      return "Chart displayed to the user. Now write one or two sentences on what it shows (no table needed).";
     },
   });
 }
@@ -121,6 +151,10 @@ export async function runCopilot({ user, supabase, messages, emit, signal }: Cop
         system: COPILOT_SYSTEM_PROMPT,
         tools: [
           ...buildCopilotTools(ctx),
+          chartTool((chart) => {
+            ctx.trace.push({ name: "render_chart", input: chart, ok: true, rows: chart.data.length, ms: 0 });
+            emit({ type: "chart", chart });
+          }),
           declineTool((category, reason) => {
             declined = { category, reason };
             ctx.trace.push({ name: "decline_request", input: { category, reason }, ok: true, rows: 0, ms: 0 });

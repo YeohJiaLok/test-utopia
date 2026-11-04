@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { CopilotEvent } from "@/lib/ai/contracts";
+import type { ChartSpec, CopilotEvent } from "@/lib/ai/contracts";
 import { MAX_QUESTION_CHARS } from "@/lib/ai/catalogue";
 import { createSseParser } from "@/lib/ai/sse";
 import type { CopilotRecord } from "@/lib/ai/types";
@@ -38,6 +38,8 @@ export interface AssistantTurn {
   error?: string;
   latencyMs?: number;
   usage?: { input_tokens: number; output_tokens: number };
+  /** Charts the agent drew for this answer (render_chart). */
+  charts: ChartSpec[];
   /** Set when the acceptable-use policy blocked or the model declined the question. */
   policy?: { outcome: "blocked" | "refused"; category: string; label: string };
 }
@@ -105,6 +107,8 @@ export function reduceEvent(turn: AssistantTurn, event: CopilotEvent): Assistant
       return { ...turn, content: turn.content + event.delta };
     case "records":
       return { ...turn, records: event.records };
+    case "chart":
+      return { ...turn, charts: [...turn.charts, event.chart] };
     case "policy":
       return { ...turn, policy: { outcome: event.outcome, category: event.category, label: event.label } };
     case "done":
@@ -153,6 +157,7 @@ async function ask(question: string) {
     status: "streaming",
     statusLabel: "Connecting",
     records: [],
+    charts: [],
     startedAt: Date.now(),
   };
   const messages = [...historyFor(state.turns), { role: "user" as const, content: text }];

@@ -66,7 +66,6 @@ export const NAV: Record<AppRole, NavSection[]> = {
     {
       title: "AI",
       items: [
-        { href: "/manager/assistant", label: "Ops Copilot", icon: "Sparkles" },
         { href: "/manager/flags", label: "AI Supervisor", icon: "ShieldAlert", badgeKey: "flags" },
       ],
     },

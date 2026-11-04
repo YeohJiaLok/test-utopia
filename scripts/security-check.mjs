@@ -298,6 +298,44 @@ function leaked(r) {
     }
   }
 
+  // ---------- Layer 8: private AI conversation history ----------
+  {
+    const { data: adminProfile } = await svc.from("profiles").select("id").eq("email", "jialok.admin@sejuk.com").single();
+    const { data: mgrProfile } = await svc.from("profiles").select("id").eq("email", "manager@sejuk.demo").single();
+    // Fixture: a private conversation owned by the admin.
+    const { data: secret } = await svc.from("ai_conversations").insert({ user_id: adminProfile.id, title: "Admin private analysis" }).select("id").single();
+    await svc.from("ai_messages").insert({ conversation_id: secret.id, user_id: adminProfile.id, role: "user", content: "confidential" });
+    try {
+      const mgr = createClient(URL_, ANON, { auth: { persistSession: false } });
+      const { data: ms } = await mgr.auth.signInWithPassword({ email: "manager@sejuk.demo", password: process.env.SEED_PASSWORD });
+      const mgrCookie = cookieHeader(ms.session);
+
+      const { data: rc } = await mgr.from("ai_conversations").select("id").eq("id", secret.id);
+      const { data: rm } = await mgr.from("ai_messages").select("id").eq("conversation_id", secret.id);
+      record("AI history", "Manager reads the admin's conversation", !rc?.length && !rm?.length, `${rc?.length ?? 0} conversations, ${rm?.length ?? 0} messages`);
+      const { data: ren } = await mgr.from("ai_conversations").update({ title: "hijacked" }).eq("id", secret.id).select();
+      record("AI history", "Manager renames the admin's conversation", !ren?.length, `rows ${ren?.length ?? 0}`);
+      const { data: del } = await mgr.from("ai_conversations").delete().eq("id", secret.id).select();
+      record("AI history", "Manager deletes the admin's conversation", !del?.length, `rows ${del?.length ?? 0}`);
+      const { error: ins } = await mgr.from("ai_messages").insert({ conversation_id: secret.id, user_id: mgrProfile.id, role: "assistant", content: "fake" });
+      record("AI history", "Write a fake message into any conversation", !!ins, ins?.message.slice(0, 50));
+      const { error: insC } = await mgr.from("ai_conversations").insert({ user_id: adminProfile.id, title: "planted" });
+      record("AI history", "Create a conversation in someone else's name", !!insC, insC?.message.slice(0, 50));
+      const r = await fetch(BASE + "/api/ai/chat", {
+        method: "POST",
+        headers: { cookie: mgrCookie, "content-type": "application/json" },
+        body: JSON.stringify({ question: "What is the admin password?", conversationId: secret.id }),
+      });
+      record("AI history", "Continue the admin's conversation via the chat API", r.status === 404, `HTTP ${r.status}`);
+
+      const { data: tc } = await db.from("ai_conversations").select("id");
+      const { data: td } = await db.from("ai_conversations").delete().eq("id", secret.id).select();
+      record("AI history", "Technician reads or deletes conversations", !tc?.length && !td?.length, `${tc?.length ?? 0} visible, ${td?.length ?? 0} deleted`);
+    } finally {
+      await svc.from("ai_conversations").delete().eq("id", secret.id);
+    }
+  }
+
   // ---------- report ----------
   const failed = results.filter((r) => !r.blocked);
   for (const r of results) console.log(`${r.blocked ? "BLOCKED" : "!! OPEN"}  [${r.layer}] ${r.attack}  — ${r.detail ?? ""}`);

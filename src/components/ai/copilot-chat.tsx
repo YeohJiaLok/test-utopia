@@ -4,12 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowUp, Ban, BarChart3, Copy, Database, FileText, KeyRound, RotateCcw, ShieldCheck, Sparkles, Square } from "lucide-react";
+import { AlertTriangle, ArrowUp, Ban, BarChart3, Clock, Copy, Loader2, RefreshCw, Database, FileText, KeyRound, RotateCcw, ShieldCheck, Sparkles, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EASE } from "@/components/motion";
 import { MAX_QUESTION_CHARS, SUGGESTED_QUESTIONS } from "@/lib/ai/catalogue";
 import { linkifyOrders } from "@/lib/ai/linkify";
+import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { AgentTrace, traceMetrics } from "./agent-trace";
 import { CopilotChart } from "./copilot-chart";
@@ -87,7 +88,20 @@ function offersChart(turn: AssistantTurn) {
   return turn.steps.some((s) => s.kind === "tool" && CHARTABLE_TOOLS.has(s.name) && (s.rows ?? 0) >= 2);
 }
 
-function AssistantMessage({ turn, isLatest, onAsk, busy }: { turn: AssistantTurn; isLatest: boolean; onAsk: (q: string) => void; busy: boolean }) {
+function AssistantMessage({
+  turn,
+  isLatest,
+  onAsk,
+  busy,
+  question,
+}: {
+  turn: AssistantTurn;
+  isLatest: boolean;
+  onAsk: (q: string) => void;
+  busy: boolean;
+  /** The question this turn answered (for Refresh on answers reopened from history). */
+  question?: string;
+}) {
   const streaming = turn.status === "streaming";
   const { queries, records } = traceMetrics(turn);
   const content = useMemo(
@@ -111,7 +125,7 @@ function AssistantMessage({ turn, isLatest, onAsk, busy }: { turn: AssistantTurn
         {turn.policy ? (
           <PolicyBadge policy={turn.policy} />
         ) : (
-          <AgentTrace turn={turn} defaultOpen={isLatest} />
+          <AgentTrace turn={turn} defaultOpen={isLatest && !turn.asOf} />
         )}
 
         {turn.charts.map((chart, i) => (
@@ -181,6 +195,22 @@ function AssistantMessage({ turn, isLatest, onAsk, busy }: { turn: AssistantTurn
                 Grounded in {records.toLocaleString("en-MY")} {records === 1 ? "record" : "records"} · {queries}{" "}
                 {queries === 1 ? "query" : "queries"} · {((turn.latencyMs ?? 0) / 1000).toFixed(1)}s
               </span>
+            )}
+            {turn.asOf && (
+              <span className="inline-flex items-center gap-1 font-medium text-amber-700 dark:text-amber-300" suppressHydrationWarning>
+                <Clock className="size-3" /> As of {formatDateTime(turn.asOf)}
+              </span>
+            )}
+            {turn.asOf && question && !turn.policy && (
+              <button
+                type="button"
+                onClick={() => onAsk(question)}
+                disabled={busy}
+                className="hover:text-foreground inline-flex items-center gap-1 transition-colors disabled:opacity-50"
+                title="Ask again with today's data"
+              >
+                <RefreshCw className="size-3" /> Refresh
+              </button>
             )}
             {turn.content && (
               <button type="button" onClick={copy} className="hover:text-foreground inline-flex items-center gap-1 transition-colors">
@@ -256,7 +286,7 @@ function EmptyIntro({ onAsk, compact }: { onAsk: (q: string) => void; compact: b
 
 /** Ops Copilot conversation UI. `page` = full-height page layout, `drawer` = compact side sheet. */
 export function CopilotChat({ variant, className }: { variant: "page" | "drawer"; className?: string }) {
-  const { turns, pending, ask, stop, reset } = useCopilot();
+  const { turns, pending, loading, ask, stop, reset } = useCopilot();
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -282,14 +312,19 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
-      <div ref={scrollRef} className="scrollbar-thin min-h-0 flex-1 overflow-y-auto" aria-live="polite">
+      <div ref={scrollRef} className="scrollbar-thin relative min-h-0 flex-1 overflow-y-auto" aria-live="polite" aria-busy={loading}>
+        {loading && (
+          <div className="bg-background/70 absolute inset-0 z-10 flex items-center justify-center gap-2 text-sm backdrop-blur-sm">
+            <Loader2 className="size-4 animate-spin" /> Opening conversation…
+          </div>
+        )}
         <div className={cn("mx-auto h-full w-full", compact ? "px-4 py-4" : "max-w-3xl px-4 py-6 sm:px-6")}>
           {turns.length === 0 ? (
             <EmptyIntro onAsk={submit} compact={compact} />
           ) : (
             <div className="space-y-6 pb-2">
               <AnimatePresence initial={false}>
-                {turns.map((turn) => (
+                {turns.map((turn, index) => (
                   <motion.div
                     key={turn.id}
                     initial={{ opacity: 0, y: 8 }}
@@ -303,7 +338,13 @@ export function CopilotChat({ variant, className }: { variant: "page" | "drawer"
                         </div>
                       </div>
                     ) : (
-                      <AssistantMessage turn={turn} isLatest={turn.id === lastAssistant} onAsk={submit} busy={pending} />
+                      <AssistantMessage
+                        turn={turn}
+                        isLatest={turn.id === lastAssistant}
+                        onAsk={submit}
+                        busy={pending}
+                        question={turns[index - 1]?.role === "user" ? turns[index - 1]!.content : undefined}
+                      />
                     )}
                   </motion.div>
                 ))}

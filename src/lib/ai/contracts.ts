@@ -69,4 +69,6 @@ export type CopilotEvent =
   | { type: "error"; message: string }
   /** The acceptable-use policy stopped (blocked) or the model declined (refused) the question. */
   | { type: "policy"; outcome: "blocked" | "refused"; category: string; label: string }
-  | { type: "chart"; chart: ChartSpec };
+  | { type: "chart"; chart: ChartSpec }
+  /** The saved conversation this answer belongs to (sent first). */
+  | { type: "conversation"; id: string; title: string };

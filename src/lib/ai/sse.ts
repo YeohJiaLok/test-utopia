@@ -4,7 +4,7 @@
  */
 import type { CopilotEvent } from "@/lib/ai/contracts";
 
-const EVENT_TYPES = new Set<CopilotEvent["type"]>(["run", "status", "tool_call", "tool_result", "text", "records", "done", "error", "policy", "chart"]);
+const EVENT_TYPES = new Set<CopilotEvent["type"]>(["run", "status", "tool_call", "tool_result", "text", "records", "done", "error", "policy", "chart", "conversation"]);
 
 export function encodeSse(event: CopilotEvent): string {
   return `data: ${JSON.stringify(event)}\n\n`;

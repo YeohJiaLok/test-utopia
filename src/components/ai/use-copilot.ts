@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import type { ChartSpec, CopilotEvent } from "@/lib/ai/contracts";
 import { MAX_QUESTION_CHARS } from "@/lib/ai/catalogue";
 import { createSseParser } from "@/lib/ai/sse";
+import { getConversation, type StoredMessage } from "@/app/(app)/ai-history-actions";
 import type { CopilotRecord } from "@/lib/ai/types";
 
 export type TraceStep =
@@ -23,6 +24,8 @@ export interface UserTurn {
   id: string;
   role: "user";
   content: string;
+  /** When the question was asked (ISO); set for turns reopened from history. */
+  asOf?: string;
 }
 
 export interface AssistantTurn {
@@ -42,6 +45,8 @@ export interface AssistantTurn {
   charts: ChartSpec[];
   /** Set when the acceptable-use policy blocked or the model declined the question. */
   policy?: { outcome: "blocked" | "refused"; category: string; label: string };
+  /** Set for answers reopened from history: the figures are as of this time (ISO). */
+  asOf?: string;
 }
 
 export type Turn = UserTurn | AssistantTurn;
@@ -49,13 +54,18 @@ export type Turn = UserTurn | AssistantTurn;
 interface CopilotState {
   turns: Turn[];
   pending: boolean;
+  /** The saved conversation these turns belong to (null until the first answer starts). */
+  conversationId: string | null;
+  title: string | null;
+  /** Loading a conversation from history. */
+  loading: boolean;
 }
 
 // ---------------------------------------------------------------- store --
-// Module-level store so the conversation survives the drawer closing and route
-// changes (the drawer and the full-page view share one conversation).
+// Module-level store so the conversation survives the window closing and route changes.
+// The server keeps the durable copy (ai_conversations); this is the on-screen view of it.
 
-const INITIAL: CopilotState = { turns: [], pending: false };
+const INITIAL: CopilotState = { turns: [], pending: false, conversationId: null, title: null, loading: false };
 let state: CopilotState = INITIAL;
 let controller: AbortController | null = null;
 const listeners = new Set<() => void>();
@@ -107,6 +117,8 @@ export function reduceEvent(turn: AssistantTurn, event: CopilotEvent): Assistant
       return { ...turn, content: turn.content + event.delta };
     case "records":
       return { ...turn, records: event.records };
+    case "conversation":
+      return turn; // conversation-level, handled by the store
     case "chart":
       return { ...turn, charts: [...turn.charts, event.chart] };
     case "policy":
@@ -124,12 +136,6 @@ export function reduceEvent(turn: AssistantTurn, event: CopilotEvent): Assistant
   }
 }
 
-function historyFor(turns: Turn[]) {
-  return turns
-    .filter((t) => t.role === "user" || (t.status === "done" && t.content.trim()))
-    .map((t) => ({ role: t.role, content: t.content }));
-}
-
 async function readError(res: Response) {
   try {
     const body = (await res.json()) as { error?: string };
@@ -144,7 +150,7 @@ async function readError(res: Response) {
 
 async function ask(question: string) {
   const text = question.trim();
-  if (!text || state.pending) return;
+  if (!text || state.pending || state.loading) return;
   if (text.length > MAX_QUESTION_CHARS) return;
 
   const userTurn: UserTurn = { id: `u${++seq}`, role: "user", content: text };
@@ -160,8 +166,9 @@ async function ask(question: string) {
     charts: [],
     startedAt: Date.now(),
   };
-  const messages = [...historyFor(state.turns), { role: "user" as const, content: text }];
-  setState({ turns: [...state.turns, userTurn, assistant], pending: true });
+  // Only the question and the conversation id: the server rebuilds the context from its copy.
+  const body = { question: text, conversationId: state.conversationId };
+  setState({ ...state, turns: [...state.turns, userTurn, assistant], pending: true });
 
   const ctrl = new AbortController();
   controller = ctrl;
@@ -171,17 +178,23 @@ async function ask(question: string) {
     const res = await fetch("/api/ai/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify(body),
       signal: ctrl.signal,
     });
     if (!res.ok || !res.body) {
       const message = await readError(res);
       terminal = true;
+      // The conversation was deleted or expired elsewhere: the next question starts a new one.
+      if (res.status === 404) setState({ ...state, conversationId: null, title: null });
       updateAssistant(assistantId, (t) => reduceEvent(t, { type: "error", message }));
       return;
     }
 
     const parser = createSseParser((event) => {
+      if (event.type === "conversation") {
+        setState({ ...state, conversationId: event.id, title: event.title });
+        return;
+      }
       if (event.type === "done" || event.type === "error") terminal = true;
       updateAssistant(assistantId, (t) => reduceEvent(t, event));
     });
@@ -231,6 +244,62 @@ function reset() {
   setState(INITIAL);
 }
 
+function toTurn(m: StoredMessage): Turn {
+  if (m.role === "user") return { id: `h${m.id}`, role: "user", content: m.content, asOf: m.createdAt };
+  return {
+    id: `h${m.id}`,
+    role: "assistant",
+    content: m.content,
+    steps: m.steps as TraceStep[],
+    status: m.status,
+    statusLabel: m.status === "done" ? "Done" : m.status === "stopped" ? "Stopped" : "Error",
+    records: m.records,
+    charts: m.charts,
+    policy: m.policy ?? undefined,
+    error: m.error ?? undefined,
+    latencyMs: m.latencyMs ?? undefined,
+    runId: m.runId ?? undefined,
+    startedAt: new Date(m.createdAt).getTime(),
+    asOf: m.createdAt,
+  };
+}
+
+/** Reopens a saved conversation (from the server, never from browser storage). */
+async function openConversation(id: string): Promise<boolean> {
+  if (state.pending) return false;
+  const userAtStart = owner;
+  setState({ ...state, loading: true });
+  try {
+    const found = await getConversation(id);
+    if (owner !== userAtStart) return false; // signed out meanwhile
+    if (!found) {
+      setState({ ...state, loading: false });
+      return false;
+    }
+    setState({
+      turns: found.messages.map(toTurn),
+      pending: false,
+      conversationId: found.conversation.id,
+      title: found.conversation.title,
+      loading: false,
+    });
+    return true;
+  } catch {
+    setState({ ...state, loading: false });
+    return false;
+  }
+}
+
+/** Keeps the header in sync after a rename from the history list. */
+function renamed(id: string, title: string) {
+  if (state.conversationId === id) setState({ ...state, title });
+}
+
+/** The open conversation was deleted from history: start fresh. */
+function forget(id: string) {
+  if (state.conversationId === id) reset();
+}
+
 // The store is module-level, and signing out / in again is a client-side navigation, so the
 // conversation must be tied to the user who had it. Never show one user's chat to another.
 let owner: string | null = null;
@@ -250,5 +319,5 @@ export function clearCopilot() {
 
 export function useCopilot() {
   const snapshot = useSyncExternalStore(subscribe, () => state, () => INITIAL);
-  return { ...snapshot, ask, stop, reset };
+  return { ...snapshot, ask, stop, reset, openConversation, renamed, forget };
 }

@@ -23,6 +23,10 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
   acceptable-use policy (`src/lib/ai/policy.ts`): injection / write requests / secrets / length are blocked before any
   model call (ai_runs status `blocked`), 20 questions per 10 min per user, and off-topic questions make the model call
   `decline_request` (status `refused`). Add new SSE event types to `EVENT_TYPES` in `src/lib/ai/sse.ts`.
+  Conversations are saved server-side (`ai_conversations` / `ai_messages`, `src/lib/ai/conversations.ts`): owner-only
+  RLS, written only by the server, model context rebuilt from the DB (the browser sends `{ question, conversationId }`),
+  90-day retention (`purge_expired_ai_conversations`). Deleting history never touches `ai_runs`. The client store is
+  bound to the signed-in user and cleared on sign-out.
 - Notifications (WhatsApp deep links + in-app) are produced by DB triggers; UI reads the `notifications` table.
 - `order_events` is an append-only SHA-256 hash chain (`*_audit_integrity.sql`): never update it; only the service role may
   delete (demo reset), and the seed calls `reset_audit_chain()` after its wipe. `verify_audit_chain()` checks it.
@@ -47,7 +51,7 @@ Enterprise service-operations platform (Next.js 16 App Router · Supabase · Cla
   assigned_technician_id = (select current_technician_id()))` (`*_rls_performance.sql`). `requireUser` loads the
   user with one `session_context()` call.
 - After any change to auth, routes, RLS, grants or functions run `npm run security:check` (dev server up): it signs in as
-  a technician and fires 89 escalation attacks (incl. 2FA bypasses); every one must report BLOCKED. Add a case for each new route/table/RPC.
+  a technician and fires 96 escalation attacks (incl. 2FA bypasses); every one must report BLOCKED. Add a case for each new route/table/RPC.
 
 ## Next.js 16 specifics
 - `middleware` is now `src/proxy.ts`. `params` / `searchParams` are Promises.

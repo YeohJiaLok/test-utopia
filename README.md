@@ -141,7 +141,7 @@ flowchart TB
   grants). It comes only from `profiles.role`, never from the email address, editable user metadata or the request.
   Least privilege: users only read through RLS. Writes go through the audited workflow functions, so not even an admin
   can quietly edit a price. The only exceptions are column grants for marking notifications read and resolving AI flags
-  in your own name. `npm run security:check` signs in as a technician and runs 89 attacks, every one of which must be
+  in your own name. `npm run security:check` signs in as a technician and runs 96 attacks, every one of which must be
   blocked:
   - edited and encoded URLs (`/ADMIN`, `/tech/..%2Fadmin`, …)
   - forged and unsigned JWTs, and `user_metadata.role=admin`
@@ -167,6 +167,12 @@ flowchart TB
   It also caps each user at 20 questions per 10 minutes. Off-topic questions (weather, coding, chit-chat) make the
   model call a `decline_request` tool, so refusals are explicit. Every outcome (ok, blocked, refused) is in the AI runs
   audit log, and the chat shows which rule applied.
+- **Saved, private AI conversations.** Every chat is saved on the server and listed under History (Today, Yesterday,
+  Previous 7 days…), where you can search, continue, rename or delete it. Conversations are private to their owner,
+  enforced by the database, so not even admins can read them. Only the server writes messages, and it rebuilds the AI's
+  context from the saved conversation rather than from what the browser sends, so earlier turns can't be faked.
+  Reopened answers are marked "As of <time>" with a Refresh button. Chats are deleted after 90 days of inactivity. The
+  AI audit log is kept separately and isn't affected when a user deletes their history.
 - **Notifications are data.** Triggers render the brief's WhatsApp template ("Hi {name}, Job {id} has been completed by
   Technician {name} at {time}…") into a `notifications` row with a `wa.me` deep link. They also notify the technician when
   a job is assigned and push in-app alerts to managers and accounts. Supabase Realtime delivers the alerts live (bell + toast).

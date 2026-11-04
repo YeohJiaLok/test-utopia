@@ -3,11 +3,12 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, Maximize2, Minimize2, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
+import { ChevronDown, History, Maximize2, MessageSquarePlus, Minimize2, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { CopilotChat } from "./copilot-chat";
+import { CopilotHistory } from "./copilot-history";
 import { bindCopilotOwner, useCopilot } from "./use-copilot";
 
 /** Pages with a fixed bar or button at the bottom on phones: lift the launcher above it. */
@@ -44,8 +45,9 @@ export function CopilotDrawer({ userId }: { userId: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [view, setView] = useState<"chat" | "history">("chat");
   const [seenId, setSeenId] = useState<string | null>(null);
-  const { turns, pending, reset } = useCopilot();
+  const { turns, pending, reset, conversationId, title, openConversation, renamed, forget } = useCopilot();
 
   // Before paint: a different signed-in user never sees the previous user's conversation.
   useLayoutEffect(() => bindCopilotOwner(userId), [userId]);
@@ -107,12 +109,30 @@ export function CopilotDrawer({ userId }: { userId: string }) {
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-[15px] leading-tight font-semibold">Sejuk Ops AI</h2>
                   <p className="truncate text-xs text-white/75">
-                    {pending ? "Analysing live data…" : "Operations assistant · online"}
+                    {pending ? "Analysing live data…" : view === "history" ? "Your conversations" : (title ?? "Operations assistant · online")}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center">
-                  <HeaderButton label="New conversation" onClick={reset} disabled={!turns.length || pending}>
-                    <RotateCcw />
+                  <HeaderButton
+                    label={view === "history" ? "Back to chat" : "History"}
+                    onClick={() => setView((v) => (v === "history" ? "chat" : "history"))}
+                    aria-pressed={view === "history"}
+                    className={cn(
+                      "size-9 text-white/85 hover:bg-white/15 hover:text-white sm:size-8",
+                      view === "history" && "bg-white/20 text-white",
+                    )}
+                  >
+                    <History />
+                  </HeaderButton>
+                  <HeaderButton
+                    label="New conversation"
+                    onClick={() => {
+                      reset();
+                      setView("chat");
+                    }}
+                    disabled={pending || (!turns.length && view === "chat")}
+                  >
+                    <MessageSquarePlus />
                   </HeaderButton>
                   <HeaderButton
                     label={expanded ? "Restore size" : "Expand"}
@@ -138,7 +158,44 @@ export function CopilotDrawer({ userId }: { userId: string }) {
               </span>
             </div>
 
-            <CopilotChat variant="drawer" className="min-h-0 flex-1" />
+            <div className="relative min-h-0 flex-1">
+              <AnimatePresence mode="wait" initial={false}>
+                {view === "history" ? (
+                  <motion.div
+                    key="history"
+                    className="absolute inset-0"
+                    initial={{ opacity: 0, x: -24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -24 }}
+                    transition={{ duration: 0.22 }}
+                  >
+                    <CopilotHistory
+                      activeId={conversationId}
+                      onOpen={async (id) => {
+                        if (await openConversation(id)) setView("chat");
+                      }}
+                      onNew={() => {
+                        reset();
+                        setView("chat");
+                      }}
+                      onRenamed={renamed}
+                      onDeleted={forget}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="chat"
+                    className="absolute inset-0 flex flex-col"
+                    initial={{ opacity: 0, x: 24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 24 }}
+                    transition={{ duration: 0.22 }}
+                  >
+                    <CopilotChat variant="drawer" className="min-h-0 flex-1" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </motion.section>
         )}
       </AnimatePresence>

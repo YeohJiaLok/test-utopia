@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown, Maximize2, Minimize2, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { CopilotChat } from "./copilot-chat";
-import { useCopilot } from "./use-copilot";
+import { bindCopilotOwner, useCopilot } from "./use-copilot";
 
 /** Pages with a fixed bar or button at the bottom on phones: lift the launcher above it. */
 const RAISED_ON_MOBILE = [/^\/admin\/orders(\/new)?$/, /^\/admin\/orders\/[^/]+$/, /^\/manager\/orders\/[^/]+$/];
@@ -40,12 +40,15 @@ function HeaderButton({ label, children, ...props }: { label: string; children: 
  * expand in place for charts and tables (full screen on phones). The conversation lives in a
  * module store, so it survives closing the window and moving between pages.
  */
-export function CopilotDrawer() {
+export function CopilotDrawer({ userId }: { userId: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [seenId, setSeenId] = useState<string | null>(null);
   const { turns, pending, reset } = useCopilot();
+
+  // Before paint: a different signed-in user never sees the previous user's conversation.
+  useLayoutEffect(() => bindCopilotOwner(userId), [userId]);
   const raised = RAISED_ON_MOBILE.some((r) => r.test(pathname));
 
   const lastDone = [...turns].reverse().find((t) => t.role === "assistant" && t.status !== "streaming")?.id ?? null;

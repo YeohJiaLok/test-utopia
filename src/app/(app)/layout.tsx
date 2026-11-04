@@ -55,7 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       user={user}
       badges={badges}
       notifications={notifications}
-      aside={user.role === "manager" || user.role === "admin" ? <CopilotDrawer /> : null}
+      aside={user.role === "manager" || user.role === "admin" ? <CopilotDrawer userId={user.id} /> : null}
     >
       {children}
     </AppShell>

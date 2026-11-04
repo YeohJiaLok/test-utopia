@@ -231,6 +231,23 @@ function reset() {
   setState(INITIAL);
 }
 
+// The store is module-level, and signing out / in again is a client-side navigation, so the
+// conversation must be tied to the user who had it. Never show one user's chat to another.
+let owner: string | null = null;
+
+/** Binds the conversation to the signed-in user; a different user starts from an empty chat. */
+export function bindCopilotOwner(userId: string) {
+  if (owner === userId) return;
+  owner = userId;
+  reset();
+}
+
+/** Wipes the conversation (sign-out). */
+export function clearCopilot() {
+  owner = null;
+  reset();
+}
+
 export function useCopilot() {
   const snapshot = useSyncExternalStore(subscribe, () => state, () => INITIAL);
   return { ...snapshot, ask, stop, reset };

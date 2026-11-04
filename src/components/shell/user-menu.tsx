@@ -19,6 +19,7 @@ import { initials } from "@/lib/format";
 import type { SessionUser } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/login/actions";
+import { clearCopilot } from "@/components/ai/use-copilot";
 import { MfaSheet } from "./mfa-sheet";
 
 const ROLE_LABEL = { admin: "Admin", technician: "Technician", manager: "Manager" } as const;
@@ -94,7 +95,10 @@ export function UserMenu({ user, compact }: { user: SessionUser; compact?: boole
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={() => start(() => logoutAction())}>
+          <DropdownMenuItem variant="destructive" onClick={() => {
+              clearCopilot(); // no conversation survives sign-out
+              start(() => logoutAction());
+            }}>
             <LogOut /> Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -42,7 +42,11 @@ and opens that role's portal: Admin → `/admin`, Manager → `/manager`, Techni
 | Manager | `manager@sejuk.demo` | Dashboard, review queue, AI Supervisor flags, ask the Ops Copilot questions |
 
 Their password is `SEED_PASSWORD` from `.env.local` (required by the seed; it is never shown in the app).
-Other technician accounts: `ali@`, `john@`, `bala@`, `yusoff@sejuk.demo` (Ali and Bala feature in the AI example questions).
+Every technician on the roster has a login. There are 14 across 5 branches, so Users & roles and Technicians always
+agree (a unit test enforces this):
+- `ali@`, `john@`, `bala@` and `yusoff@sejuk.demo` (Ali and Bala feature in the AI example questions)
+- `weijie.tech@`, `hafiz.tech@`, `kumar.tech@`, `azman.tech@`, `rizal.tech@`, `kahwai.tech@`, `siva.tech@`, `arif.tech@`
+  and `boonhuat.tech@sejuk.com`
 
 ### Users & roles
 

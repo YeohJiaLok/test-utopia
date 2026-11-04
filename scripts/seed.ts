@@ -22,7 +22,8 @@ if (!password || password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test
 
 const db: SupabaseClient = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-const ACCOUNT_BRANCH: Record<string, BranchCode> = { admin: "SA", manager: "SA", benny: "SA", ali: "SA", yusoff: "SA", john: "KL", bala: "PJ" };
+// Office accounts; technicians take their branch from the roster (TECHNICIANS).
+const ACCOUNT_BRANCH: Record<string, BranchCode> = { admin: "SA", manager: "SA" };
 
 function step(label: string) {
   console.log(`\n▸ ${label}`);
@@ -121,7 +122,7 @@ async function main() {
         full_name: a.fullName,
         email: a.email,
         role: a.role,
-        branch_id: branchId[ACCOUNT_BRANCH[a.key] ?? "SA"],
+        branch_id: branchId[TECHNICIANS.find((t) => t.account === a.key)?.branch ?? ACCOUNT_BRANCH[a.key] ?? "SA"],
         phone: TECHNICIANS.find((t) => t.account === a.key)?.phone ?? null,
         active: true, // role + active are copied into the JWT claims by the profiles_sync_claims trigger
       })),

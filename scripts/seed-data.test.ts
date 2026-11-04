@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { generateSeed, SERVICE_TYPES, BRANCHES } from "./seed-data";
+import { generateSeed, SERVICE_TYPES, BRANCHES, TECHNICIANS } from "./seed-data";
+import { SAMPLE_ACCOUNTS } from "./sample-accounts";
 
 const refs = {
   branchId: Object.fromEntries(BRANCHES.map((b, i) => [b.code, i + 1])) as never,
@@ -54,5 +55,18 @@ describe("seed generator", () => {
   it("includes anomalies for the AI supervisor to find", () => {
     const overQuote = data.completions.filter((c) => Number(c.extra_charges) > Number(c.quoted_price) * 0.5);
     expect(overQuote.length).toBeGreaterThan(0);
+  });
+});
+
+describe("technician roster and login accounts", () => {
+  it("gives every rostered technician exactly one technician login, and no login without a roster entry", () => {
+    const techAccounts = SAMPLE_ACCOUNTS.filter((a) => a.role === "technician");
+    expect(TECHNICIANS.every((t) => t.account)).toBe(true);
+    expect(new Set(TECHNICIANS.map((t) => t.account)).size).toBe(TECHNICIANS.length);
+    expect(techAccounts.map((a) => a.key).sort()).toEqual(TECHNICIANS.map((t) => t.account!).sort());
+    for (const t of TECHNICIANS) {
+      expect(techAccounts.find((a) => a.key === t.account)?.fullName).toBe(t.name);
+    }
+    expect(new Set(SAMPLE_ACCOUNTS.map((a) => a.email)).size).toBe(SAMPLE_ACCOUNTS.length);
   });
 });

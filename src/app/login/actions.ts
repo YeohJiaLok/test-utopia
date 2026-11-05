@@ -84,8 +84,10 @@ export async function verifyMfaAction(_: LoginState, formData: FormData): Promis
   redirect(safeNext(next, home));
 }
 
+/** Signs out this browser only. (Supabase's default scope is "global", which would end the
+ *  account's sessions on every device: one phone signing out would kick the laptop out too.) */
 export async function logoutAction() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
 }

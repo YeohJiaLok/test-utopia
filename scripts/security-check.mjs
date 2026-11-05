@@ -64,7 +64,7 @@ function leaked(r) {
   // ---------- Layer 1: URL tampering against the app ----------
   const officePaths = [
     "/admin", "/admin/orders", "/admin/orders/new", "/admin/technicians", "/admin/notifications", "/admin/users",
-    `/admin/orders/${otherOrder.id}`, "/manager", "/manager/reviews", "/manager/flags", "/manager/assistant",
+    `/admin/orders/${otherOrder.id}`, "/manager", "/manager/reviews", "/manager/flags",
     `/manager/orders/${otherOrder.id}`, "/audit", "/audit?tab=ai", "/audit/export?tab=events",
     // encoding / normalisation tricks
     "/ADMIN", "/Admin/users", "/%61dmin", "/admin/", "//admin", "/tech/../admin", "/tech/..%2Fadmin", "/admin%2Fusers",

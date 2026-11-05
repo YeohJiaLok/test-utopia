@@ -110,7 +110,7 @@ flowchart LR
 6. **Two-factor authentication is enforced in the database.**
    - Until the second factor is entered, `mfa_satisfied()` makes the role helpers return NULL, so a password-only session gets no data even when it calls the API directly.
 7. **Security is tested by attack.**
-   - `npm run security:check` signs in as a technician and runs 100 escalation attempts. Every one must be blocked:
+   - `npm run security:check` signs in as a technician and runs 99 escalation attempts. Every one must be blocked:
      - edited URLs;
      - forged JWTs;
      - direct database API calls;
